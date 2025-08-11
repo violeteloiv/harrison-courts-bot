@@ -1,0 +1,36 @@
+{
+  "name": "court-bot",
+  "version": "0.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup src/index.ts --minify",
+    "token-build": "tsup src/token.ts --minify",
+    "token": "node dist/token.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/node": "^24.2.0",
+    "@types/pg": "^8.15.5",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1",
+    "google-auth-library": "^10.2.1",
+    "googleapis": "^155.0.0",
+    "noblox": "^4.8.5",
+    "noblox.js": "^6.2.0",
+    "open": "^10.2.0",
+    "pg": "^8.16.3",
+    "rand-token": "^1.0.1",
+    "sequelize": "^6.37.7",
+    "sequelize-typescript": "^2.1.6",
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

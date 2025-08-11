@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16 # Or a newer version
+    restart: always
+    environment:
+      POSTGRES_USER: violeteloiv
+      POSTGRES_PASSWORD: psswrd
+      POSTGRES_DB: courts_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      POSTGRES_USER: violeteloiv
+      POSTGRES_PASSWORD: psswrd
+      POSTGRES_DB: courts_data
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /usr/src/bot/src
+        - action: rebuild
+          path: package.json
+volumes:
+  db_data:
