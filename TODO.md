@@ -11,6 +11,8 @@
     - [ ] Integrate with the roblox groups.
 
 - [ ] File Case Command
+    - [X] Make it so if multiple plaintiffs or defendants, it is Plaintiff et al v. Defendant et al
+    - [ ] Add error checking for mismatching numbers of doc types and documents.
     - [ ] Implement the Appeal Filing System
         - [ ] Check if the case is valid and in the system.
         - [ ] Check if the individual filing is a party to the case, or an attorney for a party.

@@ -32,9 +32,19 @@ export async function copyCaseCardFromTemplate(jurisdiction: string, case_type: 
 
     // Generate the name of the card based on the case type.
     // TODO: Implement naming for appeals and administrative cases.
-    let case_name;
+    let case_name = "";
     if (case_type == 'civil' || case_type == 'criminal') {
-        case_name = plaintiffs.join(", ") + " v. " + defendents.join(", ");
+        if (plaintiffs.length > 1) {
+            case_name += `${plaintiffs[0]} et al. v. `;
+        } else {
+            case_name += `${plaintiffs[0]} v. `;
+        }
+
+        if (defendents.length > 1) {
+            case_name += `${defendents[0]} et al.`;
+        } else {
+            case_name += `${defendents[0]}`;
+        }
     } else if (case_type == 'expungement' || case_type == 'special') {
         case_name = `in re ${plaintiffs.join(", ")}`;
     } else {
