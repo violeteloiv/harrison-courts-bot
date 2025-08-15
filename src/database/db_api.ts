@@ -88,14 +88,14 @@ export async function insertCase(case_code: string, judge: string, card_link: st
     let sql = `INSERT INTO cases (case_code, judge, card_link, channel, status, sealed, plaintiffs, defendants, representing_plaintiffs, representing_defendants, filings) VALUES ('${case_code}', ${judge_value}, '${card_link}', ${channel_value}, '${status}', ${sealed}, '{`;
     if (plaintiffs.length != 0) {
         plaintiffs.forEach((plaintiff) => {
-            sql += `${plaintiff},`;
+            sql += `"${plaintiff}",`;
         });
         sql = sql.slice(0, -1);
     }
     sql += "}', '{";
     if (defendants.length != 0) {
         defendants.forEach((defendant) => {
-            sql += `${defendant},`;
+            sql += `"${defendant}",`;
         });
         sql = sql.slice(0, -1);
     }
@@ -169,6 +169,6 @@ export async function getUserFromDiscordID(discord_id: string) {
     if (result.rowCount) {
         return result.rows[0];
     } else {
-        throw new Error("Unable to get the full user.");
+        return null;
     }
 }
