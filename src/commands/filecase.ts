@@ -64,7 +64,7 @@ export async function execute(interaction: CommandInteraction) {
         let form = createCivilFilingForm();
         let responses = await executeForm(form, interaction.member);
         await processCivilFilingForm(
-            { case_type: case_type, jurisdiction: jurisdiction, permission: permission, id: interaction.user.id, message: responses.message },
+            { permission: permission, id: interaction.user.id, message: responses.message },
             responses.answers
         );
     }

@@ -8,8 +8,6 @@ import { copyAndStoreDocument, createAndStoreNOA, uploadAndStorePDF } from "../d
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../database/trello_api";
 
 export interface CivilCaseInfo {
-    case_type: string,
-    jurisdiction: string,
     permission: number,
     id: string,
     message: Message,
@@ -114,7 +112,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
 
     try {
         // Get identifying information.
-        let case_code = await getCodeFromCaseType(info.case_type);
+        let case_code = await getCodeFromCaseType("civil");
         let roblox_id = await getRobloxIDFromDiscordID(info.id);
         let username = await noblox.getUsernameFromId(roblox_id);
         let rep_attorneys = [];
@@ -138,7 +136,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
                 defendants: defendants,
                 presiding_judge: "TBD",
                 username: username,
-                jurisdiction: (info.jurisdiction == "county" ? "COUNTY COURT" : "SEVENTH JUDICIAL CIRCUIT"),
+                jurisdiction: "COUNTY COURT",
                 bar_number: 111000,
                 party: "Plaintiff",
             }));
@@ -181,7 +179,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
         info.message.edit({ embeds: [embed] });
 
         // Upload to trello.
-        let case_card = await copyCaseCardFromTemplate("county", info.case_type, plaintiffs, defendants);
+        let case_card = await copyCaseCardFromTemplate("county", "civil", plaintiffs, defendants);
         case_card.deadline = getTrelloDueDate(3);
 
         const case_card_header = `**Presiding Judge:** TBD\n**Date Assigned:** TBD\n**Docket #:** ${case_code}\n\n---\n\n**Record:**\n`;
@@ -196,14 +194,14 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
             { id: "6897f11ed92e87ddd328ed1b", name: "CIVIL" },
         ]
 
-        await updateTrelloCard(case_card, info.case_type);
+        await updateTrelloCard(case_card, "civil");
 
         embed.setDescription(`Information uploaded to trello! Find it [here](${case_card.url}).`);
         info.message.edit({ embeds: [embed] });
 
         // Update the relevant databases.
         let current_codes = await getCurrentCaseCodes();
-        await updateSpecificCaseCode(info.case_type.toLowerCase(), current_codes[info.case_type.toLowerCase()] + 1);  
+        await updateSpecificCaseCode("civil", current_codes["civil"] + 1);  
 
         let filing_id = generateFilingID();
         while (await getFilingByID(filing_id)) {
