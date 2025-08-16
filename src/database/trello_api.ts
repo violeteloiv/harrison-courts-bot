@@ -47,6 +47,8 @@ export async function copyCaseCardFromTemplate(jurisdiction: string, case_type: 
         }
     } else if (case_type == 'expungement' || case_type == 'special') {
         case_name = `in re ${plaintiffs.join(", ")}`;
+    } else if (case_type == "admin") {
+        case_name = "";
     } else {
         return Promise.reject("Case Type Invalid");
     }

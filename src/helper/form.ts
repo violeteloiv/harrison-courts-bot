@@ -38,40 +38,50 @@ export async function executeForm(form: Form, member: GuildMember): Promise<Answ
     await askQuestion();
 
     return new Promise((resolve, reject) => {
-        const collector = dmChannel.createMessageCollector({
-            filter: m => m.author.id === member.id,
-            time: 240_000 * form.questions.length
-        });
+        function createCollector() {
+            const collector = dmChannel.createMessageCollector({
+                filter: m => m.author.id === member.id,
+                time: 600_000 * form.questions.length
+            });
 
-        collector.on("collect", async message => {
-            const question = form.questions[index];
-            let result = question.callback(message, answers);
+            collector.on("collect", async message => {
+                const question = form.questions[index];
+                let result = question.callback(message, answers);
 
-            if (result.name === "error") {
-                await dmChannel.send({ embeds: [result.value] });
-                await askQuestion();
-            } else if (result.name == "skip") {
-                index += 2;
-            }else {
-                answers.push(result);
-                index++;
-                await askQuestion();
-            }
+                if (result.name === "error") {
+                    await dmChannel.send({ embeds: [result.value] });
+                    await askQuestion();
+                } else if (result.name == "skip") {
+                    index += 2;
+                } else if (result.name == "none") {
+                    index++;
+                } else {
+                    answers.push(result);
+                    index++;
+                    await askQuestion();
+                }
 
-            if (index >= form.questions.length) {
-                collector.stop("completed");
-            }
-        });
+                if (index >= form.questions.length) {
+                    collector.stop("completed");
+                }
+            });
 
-        collector.on("end", async () => {
-            const embed = new EmbedBuilder()
-                .setTitle("Form Conclusion")
-                .setDescription("Thank you for answering these questions, we are now processing this information!")
-                .setColor("#9853b5")
-                .setTimestamp();
-            let message = await dmChannel.send({ embeds: [embed] });
+            collector.on("end", async (collected, reason) => {
+                if (reason != "time") {
+                    const embed = new EmbedBuilder()
+                        .setTitle("Form Conclusion")
+                        .setDescription("Thank you for answering these questions, we are now processing this information!")
+                        .setColor("#9853b5")
+                        .setTimestamp();
+                    let message = await dmChannel.send({ embeds: [embed] });
 
-            resolve({ answers: answers, message: message });
-        });
+                    resolve({ answers: answers, message: message });
+                } else {
+                    createCollector();
+                }
+            });
+        }
+
+        createCollector();        
     });
 }

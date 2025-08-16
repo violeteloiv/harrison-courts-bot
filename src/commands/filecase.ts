@@ -5,11 +5,6 @@ import { botErrorEditReply } from "../helper/format";
 import { executeForm } from "../helper/form";
 import { createCivilFilingForm, processCivilFilingForm } from "../forms/civil_filing_form";
 
-interface SessionData {
-    interaction: ModalSubmitInteraction,
-};
-const sessionData = new Map<string, SessionData>();
-
 export const data = new SlashCommandBuilder()
     .setName("filecase")
     .addStringOption(option =>
