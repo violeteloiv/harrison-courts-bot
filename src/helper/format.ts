@@ -1,6 +1,7 @@
 import { generator } from "rand-token";
 import { getCurrentCaseCodes } from "../database/db_api";
 import { CommandInteraction, EmbedBuilder, ModalSubmitInteraction } from "discord.js";
+import { permissions_list } from "../config";
 
 export async function getCodeFromCaseType(case_type: string): Promise<string> {
     let ret = "";
@@ -80,4 +81,37 @@ export function capitalizeEachWord(inputString: string): string {
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(' ');
+}
+
+export function getPermissionString(perm: number): string {
+    let str = "- **Permissions:**";
+    if ((perm & permissions_list.RESIDENT) > 0) {
+        str += " `Resident`,";
+    }
+
+    if ((perm & permissions_list.PROSECUTOR) > 0) {
+        str += " `Prosecutor`,";
+    } else if ((perm & permissions_list.ATTORNEY) > 0) {
+        str += " `Attorney`,";
+    }
+
+    if ((perm & permissions_list.JUDGE) > 0) {
+        str += " `Judge`,";
+    }
+
+    if ((perm & permissions_list.CLERK) > 0) {
+        str += " `Clerk`,";
+    }
+
+    if ((perm & permissions_list.ADMINISTRATOR) > 0) {
+        str += " `Admin`,";
+    }
+
+    if (perm == 0) {
+        str += " `None`,";
+    }
+
+    str = str.slice(0, -1);
+
+    return str;
 }
