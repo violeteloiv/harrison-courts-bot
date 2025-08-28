@@ -1,4 +1,5 @@
 - [ ] Register Command
+    - [ ] When gaining judge permissions:
     - [ ] When losing judge permissions:
         - [ ] Transfer all cases assigned to the judge to "PENDING".
         - [ ] Transfer all case channels to a separate category.
@@ -18,3 +19,16 @@
 
 - [ ] Pending Cases Command
     - [ ] Implement a page system when there are more than a certain amount of cases.
+
+- [ ] Civil Case Filing Flow
+    - [X] File the Civil Case
+    - [X] Review the currently pending cases
+    - [ ] Assign the case to a judge
+    - [ ] Summons system
+        - [ ] Adding person to channel
+        - [ ] Removing person from channel
+    - [ ] Create filings for the case
+    - [ ] Set case status
+    - [ ] Minute orders
+    - [ ] Rulings
+    - [ ] Archiving case

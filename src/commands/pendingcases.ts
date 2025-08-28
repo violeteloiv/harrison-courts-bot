@@ -2,6 +2,7 @@ import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.j
 import { getCardsFromList } from "../database/trello_api";
 import { getPermissionFromDiscordID } from "../database/db_api";
 import { permissions_list } from "../config";
+import { createErrorEmbed } from "../helper/format";
 
 export const data = new SlashCommandBuilder()
     .setName("pendingcases")
@@ -10,14 +11,8 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
     // Check the permissions of the user.
     let permission = await getPermissionFromDiscordID(interaction.user.id);
-    if ((permission & permissions_list.CLERK) == 0 && (permission & permissions_list.JUDGE) == 0) {
-        const embed = new EmbedBuilder()
-            .setTitle("Permission Error")
-            .setDescription("Must be a judge or clerk to run this command.")
-            .setColor("#d93a3a")
-            .setTimestamp();
-
-        return await interaction.reply({ embeds: [embed] });
+    if ((permission & permissions_list.CLERK) == 0 && (permission & permissions_list.JUDGE) == 0 && (permission & permissions_list.ADMINISTRATOR) == 0) {
+        return await interaction.reply({ embeds: [createErrorEmbed("Permission Error", "Must be a judge or clerk to run this command.")] });
     }
 
     const embed = new EmbedBuilder()
@@ -51,13 +46,7 @@ export async function execute(interaction: CommandInteraction) {
             }
         });
     } catch (error) {
-        const embed = new EmbedBuilder()
-            .setTitle("Bot Error")
-            .setDescription("Unable to get cards from the list.")
-            .setColor("#d93a3a")
-            .setTimestamp();
-
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n ${error}`)] });
     }
 
     description += "\n__***Pending Circuit Court Cases:***__\n";
@@ -84,15 +73,7 @@ export async function execute(interaction: CommandInteraction) {
             }
         });
     } catch (error) {
-        const embed = new EmbedBuilder()
-            .setTitle("Bot Error")
-            .setDescription("Unable to get cards from the list.")
-            .setColor("#d93a3a")
-            .setTimestamp();
-
-        console.log(error);
-
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n ${error}`)] });
     }
 
     embed.setDescription(description);
