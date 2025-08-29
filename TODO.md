@@ -1,0 +1,25 @@
+- [ ] Register Command
+    - [ ] When getting judge permissions:
+        - [ ] Create a category in the discord server for the judge.
+        - [ ] Add a channel called "judge-information" which judges and clerks have permissions to speak in.
+    - [ ] When losing judge permissions:
+        - [ ] Transfer all cases assigned to the judge to "PENDING".
+        - [ ] Delete all the channels under the judge's category.
+        - [ ] Delete the category.
+    - [ ] Get the specific discord server IDs for which the register command can be run.
+    - [ ] Integrate with the BAR Database.
+    - [ ] Integrate with the roblox groups.
+
+- [ ] File Case Command
+    - [ ] Implement the Appeal Filing System
+        - [ ] Check if the case is valid and in the system.
+        - [ ] Check if the individual filing is a party to the case, or an attorney for a party.
+        - [ ] Create the trello implementations for the appeals filing.
+    - [ ] Implement the Admin Filing System
+        - [ ] Figure out what things are required for this.
+        - [ ] Create the trello implementations for the appeals filing.
+    - [ ] Add support for filing PDFs directly.
+    - [ ] Add a five minute cooldown between running the command.
+
+- [ ] Pending Cases Command
+    - [ ] Implement a page system when there are more than a certain amount of cases.
