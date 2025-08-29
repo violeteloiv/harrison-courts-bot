@@ -1,5 +1,5 @@
 import { generator } from "rand-token";
-import { getCurrentCaseCodes } from "../database/db_api";
+import { getCurrentCaseCodes } from "../api/db_api";
 import { CommandInteraction, EmbedBuilder, ModalSubmitInteraction } from "discord.js";
 import { permissions_list } from "../config";
 

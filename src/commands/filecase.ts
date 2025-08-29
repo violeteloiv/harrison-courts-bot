@@ -1,5 +1,5 @@
-import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, ModalSubmitInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
-import { getPermissionFromDiscordID } from "../database/db_api";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, SlashCommandBuilder, TextChannel } from "discord.js";
+import { getPermissionFromDiscordID } from "../api/db_api";
 import { permissions_list } from "../config";
 import { botErrorEditReply } from "../helper/format";
 import { executeForm } from "../helper/form";

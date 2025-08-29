@@ -1,12 +1,12 @@
 import noblox from "noblox.js";
 import { CommandInteraction, SlashCommandBuilder, GuildMember, EmbedBuilder, ChatInputCommandInteraction, User, ChannelType, CategoryChannel, PermissionFlagsBits } from "discord.js";
-import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "../database/db_api";
+import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "../api/db_api";
 import { permissions_list } from "../config";
-import { getBarDatabaseDataFromUsername } from "../database/sheet_api";
+import { getBarDatabaseDataFromUsername } from "../api/sheet_api";
 import { createErrorEmbed, getPermissionString } from "../helper/format";
-import { isUserInGroup } from "../database/ro_api";
+import { isUserInGroup } from "../api/ro_api";
 import { client } from "../client";
-import { createCategoryNextTo, removeCategory } from "../database/trello_api";
+import { createCategoryNextTo, removeCategory } from "../api/trello_api";
 import { register } from "module";
 
 export const data = new SlashCommandBuilder()
@@ -207,7 +207,8 @@ export async function execute(interaction: CommandInteraction) {
 	await guild.channels.fetch();
 	
 	// Someone just got judicial perms!!!
-	if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) == 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0) {
+	if (((register_data.old_perms! & permissions_list.COUNTY_JUDGE) == 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0)
+			|| (register_data.old_perms == -1 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0)) {
 		// Create the category
 		const refCategory = guild.channels.cache.find((c): c is CategoryChannel => c.name === "Duty Court" && c.type === ChannelType.GuildCategory);
 		const category = await guild.channels.create({
@@ -259,30 +260,33 @@ export async function execute(interaction: CommandInteraction) {
 		try {
 			await createCategoryNextTo(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721", "6892a37a0cf6d3d722bc6bec");
 		} catch (error) {
-			interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+			return interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
 		}
 	}
 
+	
 	// Someone lost their judicial perms :(
-	if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) > 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) == 0) {
-		const category = guild.channels.cache.find(
-			channel => channel.name == `Chambers of ${register_data.username!}` && channel.type == ChannelType.GuildCategory
-		) as CategoryChannel;
+	if (register_data.old_perms != -1) {
+		if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) > 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) == 0) {
+			const category = guild.channels.cache.find(
+				channel => channel.name == `Chambers of ${register_data.username!}` && channel.type == ChannelType.GuildCategory
+			) as CategoryChannel;
 
-		// TODO: Handle the transfer and status of case channels here.
+			// TODO: Handle the transfer and status of case channels here.
 
-		category.children.cache.forEach(async (channel) => {
-			await channel.delete();
-		})
+			category.children.cache.forEach(async (channel) => {
+				await channel.delete();
+			})
 
-		category?.delete();
+			category?.delete();
 
-		// TODO: Handle the transfer of trello cards here.
+			// TODO: Handle the transfer of trello cards here.
 
-		try {
-			await removeCategory(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721");
-		} catch (error) {
-			interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+			try {
+				await removeCategory(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721");
+			} catch (error) {
+				return interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+			}
 		}
 	}
 }
