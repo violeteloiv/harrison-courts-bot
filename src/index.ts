@@ -1,8 +1,8 @@
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
-import { verifyConnection } from "./database/db";
-import { createTable } from "./database/db_api";
+import { verifyConnection } from "./api/db";
+import { createTable } from "./api/db_api";
 import { client } from "./client";
 
 client.once("ready", async () => {

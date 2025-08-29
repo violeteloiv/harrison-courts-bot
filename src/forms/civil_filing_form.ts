@@ -2,10 +2,10 @@ import { EmbedBuilder, Message } from "discord.js";
 import { Answer, Form } from "../helper/form";
 import { capitalizeEachWord, createErrorEmbed, formatDateUTC, generateFilingID, getCodeFromCaseType } from "../helper/format";
 import { permissions_list } from "../config";
-import { getCurrentCaseCodes, getFilingByID, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../database/db_api";
+import { getCurrentCaseCodes, getFilingByID, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";
 import noblox from "noblox.js";
-import { copyAndStoreDocument, createAndStoreNOA, uploadAndStorePDF } from "../database/doc_api";
-import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../database/trello_api";
+import { copyAndStoreDocument, createAndStoreNOA, uploadAndStorePDF } from "../api/doc_api";
+import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -108,7 +108,7 @@ export function createCivilFilingForm(): Form {
 export async function processCivilFilingForm(info: CivilCaseInfo, responses: any[]) {
     let plaintiffs = responses.find(val => val.name == "plaintiffs").value;
     let defendants = responses.find(val => val.name == "defendants").value;
-    let doc_types: string[] = responses.find(val => val.name == "doc_types").value;
+    let doc_types_raw = responses.find(val => val.name == "doc_types");
 
     try {
         // Get identifying information.
@@ -145,33 +145,37 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
             rep_attorneys.push(info.id);
         }
 
-        // Process the supplied documents!
-        let pdf_docs_response: Answer = responses.find(val => val.name == "pdf_att");
-        let gdrive_docs_response: Answer = responses.find(val => val.name == "gdrive_docs");
-        
-        if (gdrive_docs_response) {
-            let gdrive_docs = gdrive_docs_response.value;
-            for (let i = 0; i < gdrive_docs.length; i++) {
-                let doc_type = capitalizeEachWord(doc_types[i]);
-                embed.setDescription(`Uploading your ${doc_type}...`);
-                info.message.edit({ embeds: [embed] });
+        if (doc_types_raw) {
+            let doc_types = doc_types_raw.value;
+            
+            // Process the supplied documents!
+            let pdf_docs_response: Answer = responses.find(val => val.name == "pdf_att");
+            let gdrive_docs_response: Answer = responses.find(val => val.name == "gdrive_docs");
+            
+            if (gdrive_docs_response) {
+                let gdrive_docs = gdrive_docs_response.value;
+                for (let i = 0; i < gdrive_docs.length; i++) {
+                    let doc_type = capitalizeEachWord(doc_types[i]);
+                    embed.setDescription(`Uploading your ${doc_type}...`);
+                    info.message.edit({ embeds: [embed] });
 
-                processed_docs.push(await copyAndStoreDocument(gdrive_docs[i], {
-                    case_id: case_code, doc_type: doc_type
-                }));
-                processed_doc_types.push(doc_type);
-            }
-        } else {
-            let pdf_att = pdf_docs_response.value;
-            for (let i = 0; i < pdf_att.length; i++) {
-                let doc_type = capitalizeEachWord(doc_types[i]);
-                embed.setDescription(`Uploading your ${doc_type}...`);
-                info.message.edit({ embeds: [embed] });
+                    processed_docs.push(await copyAndStoreDocument(gdrive_docs[i], {
+                        case_id: case_code, doc_type: doc_type
+                    }));
+                    processed_doc_types.push(doc_type);
+                }
+            } else {
+                let pdf_att = pdf_docs_response.value;
+                for (let i = 0; i < pdf_att.length; i++) {
+                    let doc_type = capitalizeEachWord(doc_types[i]);
+                    embed.setDescription(`Uploading your ${doc_type}...`);
+                    info.message.edit({ embeds: [embed] });
 
-                processed_docs.push(await uploadAndStorePDF(pdf_att[i], {
-                    case_id: case_code, doc_type: doc_type
-                }));
-                processed_doc_types.push(doc_type);
+                    processed_docs.push(await uploadAndStorePDF(pdf_att[i], {
+                        case_id: case_code, doc_type: doc_type
+                    }));
+                    processed_doc_types.push(doc_type);
+                }
             }
         }
 

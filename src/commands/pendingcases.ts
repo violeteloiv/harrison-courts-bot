@@ -1,6 +1,6 @@
 import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { getCardsFromList } from "../database/trello_api";
-import { getPermissionFromDiscordID } from "../database/db_api";
+import { getCardsFromList } from "../api/trello_api";
+import { getPermissionFromDiscordID } from "../api/db_api";
 import { permissions_list } from "../config";
 import { createErrorEmbed } from "../helper/format";
 

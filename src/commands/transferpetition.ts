@@ -1,6 +1,6 @@
 import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { botErrorEditReply, createErrorEmbed } from "../helper/format";
-import { getRobloxIDFromDiscordID } from "../database/db_api";
+import { getRobloxIDFromDiscordID } from "../api/db_api";
 import noblox from "noblox.js";
 import { createTransferPetitionForm, processTransferPetitionForm } from "../forms/transfer_petition_form";
 import { executeForm } from "../helper/form";

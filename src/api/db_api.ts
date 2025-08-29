@@ -124,6 +124,17 @@ export async function insertCase(case_code: string, judge: string, card_link: st
     await pool.query(sql);
 }
 
+export async function getCaseByCaseCode(case_code: string): Promise<any> {
+    let sql = `SELECT * FROM cases WHERE case_code = '${case_code}'`;
+    const get_result = await pool.query(sql);
+
+    if (get_result.rowCount != 0) {
+        return get_result.rows[0];
+    } {
+        return null;
+    }
+}
+
 // USER SPECIFIC CALLS
 
 export async function insertUser(discord_id: string, roblox_id: number, permission: number) {
