@@ -1,11 +1,7 @@
 - [ ] Register Command
-    - [ ] When getting judge permissions:
-        - [ ] Create a category in the discord server for the judge.
-        - [ ] Add a channel called "judge-information" which judges and clerks have permissions to speak in.
     - [ ] When losing judge permissions:
         - [ ] Transfer all cases assigned to the judge to "PENDING".
-        - [ ] Delete all the channels under the judge's category.
-        - [ ] Delete the category.
+        - [ ] Transfer all case channels to a separate category.
     - [ ] Get the specific discord server IDs for which the register command can be run.
         - [ ] Integrate Police Permissions.
 

@@ -1,10 +1,11 @@
 import noblox from "noblox.js";
-import { CommandInteraction, SlashCommandBuilder, GuildMember, EmbedBuilder, ChatInputCommandInteraction, User } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder, GuildMember, EmbedBuilder, ChatInputCommandInteraction, User, ChannelType, CategoryChannel, PermissionFlagsBits } from "discord.js";
 import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "../database/db_api";
 import { permissions_list } from "../config";
 import { getBarDatabaseDataFromUsername } from "../database/sheet_api";
 import { createErrorEmbed, getPermissionString } from "../helper/format";
 import { isUserInGroup } from "../database/ro_api";
+import { client } from "../client";
 
 export const data = new SlashCommandBuilder()
     .setName("register")
@@ -19,13 +20,22 @@ export const data = new SlashCommandBuilder()
 const COURTS_SERVER_ID = "967957262297624597";
 const DA_GROUP_ID = 32985413;
 const COURTS_GROUP_ID = 32305960;
+const MAIN_GROUP_ID = 15665829;
 
-export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User | null) {
+interface RegisterData {
+	old_perms?: number,
+	new_perms?: number,
+	username?: string,
+	discord_id?: string,
+}
+
+export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User | null): Promise<RegisterData> {
 	// Ensure this is being run inside of a discord server.
 	// TODO: Do a check to make sure this is being done in cop discords.
 	let member = interaction.member;
 	if (!member || !interaction.inGuild() || interaction.guild?.id != COURTS_SERVER_ID) {
-		return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
+		interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
+		return { new_perms: -1 };
 	}
 
 	// Get the user being updated in this interaction.
@@ -36,13 +46,15 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 		try {
 			permission = await getPermissionFromDiscordID(runner_discord_id);
 		} catch (error) {
-			return interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+			interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+			return { new_perms: -1 };
 		}
 
 		if ((permission & permissions_list.JUDGE_PLUS) > 0) {
 			user_to_update = targetUser;
 		} else {
-			return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
+			interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
+			return { new_perms: -1 };
 		}
 	} else {
 		user_to_update = interaction.user;
@@ -61,7 +73,8 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	// Ensure that the user has verified before running this command.
 	const roleNames = user_to_update.roles.cache.map(r => r.name);
 	if (!roleNames.includes("Verified")) {
-		return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
+		interaction.reply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
+		return { new_perms: -1 };
 	}
 
 	// Now, get the roblox ID using the API.
@@ -69,14 +82,15 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	try {
 		roblox_id = await noblox.getIdFromUsername(discord_nickname);
 	} catch (error) {
-		return interaction.reply(`${error}`);
+		interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+		return { new_perms: -1 };
 	}
 	
 	// Determine the permissions based on the roles of the user and positions in groups.
 	let permission = 0;
 	
 	// Use the role in the discord to determine if they are a resident.
-	if (roleNames.includes("Resident")) {
+	if (await isUserInGroup(roblox_id, MAIN_GROUP_ID, "Resident")) {
 		permission = permission | permissions_list.RESIDENT;
 	}
 
@@ -104,7 +118,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 		permission = permission | permissions_list.DEPUTY_CLERK;
 	}
 
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge")
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge") // roblox_id == 370917506
 			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge")) {
 		permission = permission | permissions_list.CIRCUIT_JUDGE;
 	}
@@ -149,7 +163,13 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 
 		await insertUser(discord_id, roblox_id, permission);
 
-		return interaction.reply({ embeds: [embed]});
+		interaction.reply({ embeds: [embed]});
+		return {
+			new_perms: permission, 
+			old_perms: user.permission,
+			username: discord_nickname,
+			discord_id: discord_id,
+		};
 	} else {
 		const embed = new EmbedBuilder()
 			.setTitle("Registration Successful!")
@@ -163,7 +183,13 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 
 		await insertUser(discord_id, roblox_id, permission);
 
-		return interaction.reply({ embeds: [embed]});
+		interaction.reply({ embeds: [embed]});
+		return {
+			new_perms: permission, 
+			old_perms: -1,
+			username: discord_nickname,
+			discord_id: discord_id,
+		};
 	}
 }
 
@@ -172,5 +198,74 @@ export async function execute(interaction: CommandInteraction) {
 	const chatInteraction = interaction as ChatInputCommandInteraction;
 	const targetUser = chatInteraction.options.getUser("user", false);
 
-	return await register_user(chatInteraction, targetUser);
+	let register_data: RegisterData = await register_user(chatInteraction, targetUser);
+	if (register_data.new_perms == -1) return;
+
+	let guild = await client.guilds.fetch(COURTS_SERVER_ID);
+	await guild.channels.fetch();
+
+	// Someone just got judicial perms!!!
+	if ((register_data.old_perms! & permissions_list.JUDGE) == 0 && (register_data.new_perms! & permissions_list.JUDGE) > 0) {
+		const refCategory = guild.channels.cache.find((c): c is CategoryChannel => c.name === "Circuit Court" && c.type === ChannelType.GuildCategory);
+		const category = await guild.channels.create({
+			name: `Chambers of ${register_data.username!}`,
+			type: ChannelType.GuildCategory,
+		})
+		category.setPosition(refCategory?.position! + 1);
+
+		// Create an information channel under the category.
+		await guild.channels.create({
+			name: "chamber-information",
+			type: ChannelType.GuildText,
+			parent: category.id,
+			permissionOverwrites: [
+				{
+					id: guild.roles.everyone.id,
+					deny: [
+						PermissionFlagsBits.AddReactions,
+						PermissionFlagsBits.AttachFiles,
+						PermissionFlagsBits.CreatePrivateThreads,
+						PermissionFlagsBits.CreatePublicThreads,
+						PermissionFlagsBits.SendMessages
+					],
+					allow: [
+						PermissionFlagsBits.ViewChannel
+					]
+				},
+				{
+					id: guild.roles.cache.find(role => role.name == "Deputy Clerk")!.id,
+					allow: [
+						PermissionFlagsBits.SendMessages
+					]
+				},
+				{
+					id: guild.roles.cache.find(role => role.name == "Chief Clerk")!.id,
+					allow: [
+						PermissionFlagsBits.SendMessages
+					]
+				},
+				{
+					id: register_data.discord_id!,
+					allow: [
+						PermissionFlagsBits.SendMessages
+					]
+				}
+			]
+		});
+	}
+
+	// Someone lost their judicial perms :(
+	if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) > 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) == 0) {
+		const category = guild.channels.cache.find(
+			channel => channel.name == `Chambers of ${register_data.username!}` && channel.type == ChannelType.GuildCategory
+		) as CategoryChannel;
+
+		// TODO: Handle the transfer and status of case channels here.
+
+		category.children.cache.forEach(async (channel) => {
+			await channel.delete();
+		})
+
+		category?.delete();
+	}
 }
