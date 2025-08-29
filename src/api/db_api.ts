@@ -115,10 +115,13 @@ export async function insertCase(case_code: string, judge: string, card_link: st
         sql = sql.slice(0, -1);
     }
     sql += "}', '{";
-    filings.forEach((filing) => {
-        sql += `"${filing}",`;
-    });
-    sql = sql.slice(0, -1);
+    if (filings.length != 0) {
+        filings.forEach((filing) => {
+            sql += `"${filing}",`;
+        });
+        
+        sql = sql.slice(0, -1);
+    }
     sql += "}');";
 
     await pool.query(sql);
