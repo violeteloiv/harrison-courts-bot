@@ -4,8 +4,9 @@ import { capitalizeEachWord, createErrorEmbed, formatDateUTC, generateFilingID, 
 import { permissions_list } from "../config";
 import { getCurrentCaseCodes, getFilingByID, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";
 import noblox from "noblox.js";
-import { copyAndStoreDocument, createAndStoreNOA, uploadAndStorePDF } from "../api/doc_api";
+import { copyAndStoreDocument, uploadAndStorePDF } from "../api/doc_api";
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
+import { createAndStoreNOA } from "../api/documents/noa";
 
 export interface CivilCaseInfo {
     permission: number,

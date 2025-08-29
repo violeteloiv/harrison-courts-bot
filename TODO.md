@@ -23,14 +23,14 @@
 - [ ] Assign Cases Command
     - [ ] Make it so that it creates a document and a filing under the case.
         - [ ] Separate filing for reassigning the case.
-    - [ ] If reassigning the case, keep the original case status.
-        - [ ] Move the channel to the new categories.
+    - [X] If reassigning the case, keep the original case status.
+        - [X] Move the channel to the new categories.
 
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case
     - [X] Review the currently pending cases
     - [X] Assign the case to a judge
-        - [ ] Ability to reassign cases
+        - [X] Ability to reassign cases
     - [ ] Notice of Appearance
     - [ ] Summons system
         - [ ] Adding person to channel
