@@ -10,22 +10,24 @@ interface CaseCard {
     labels: Label[];
     deadline: string;
     url: string;
+    boardId: string;
 };
+
+const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
+const CIRCUIT_COURT_BOARD_ID = "6892a4c496df6092610ed5db";
 
 export async function copyCaseCardFromTemplate(jurisdiction: string, case_type: string, plaintiffs: string[], defendents: string[]): Promise<CaseCard> {
     const apiKey = process.env.TRELLO_API_KEY!;
     const apiToken = process.env.TRELLO_TOKEN!;
 
     // Get the board ID depending on the jurisdiction.
-    let list_id, card_id, board_id;
+    let list_id, card_id;
     if (jurisdiction == 'county') {
         list_id = "6892a359ff10f18c8b09242d";
         card_id = "68944e50232e7a5cd1f726e0";
-        board_id = process.env.COUNTY_COURT_BOARD_ID!;
     } else if (jurisdiction == 'circuit') {
         list_id = "6892a4c496df6092610ed6dc";
         card_id = "6896e43ff3c33669b7af985a"
-        board_id = process.env.CIRCUIT_COURT_BOARD_ID!;
     } else {
         return Promise.reject("Jurisdiction invalid.");
     }
@@ -48,7 +50,7 @@ export async function copyCaseCardFromTemplate(jurisdiction: string, case_type: 
     } else if (case_type == 'expungement' || case_type == 'special') {
         case_name = `in re ${plaintiffs.join(", ")}`;
     } else if (case_type == "admin") {
-        case_name = "";
+        case_name = `in re ${plaintiffs[0]}`;
     } else {
         return Promise.reject("Case Type Invalid");
     }
@@ -78,6 +80,7 @@ export async function copyCaseCardFromTemplate(jurisdiction: string, case_type: 
             name: label.name,
         })),
         deadline: copiedCard.due || "", // empty string if no due date
+        boardId: copiedCard.boardId,
     };
 
     return caseCard;
@@ -112,6 +115,8 @@ export async function updateTrelloCard(card: CaseCard, case_type: string) {
         card.labels.push({ id: "6897f13b58f531982d709450", name: "EXPUNGEMENT" });
     } else if (case_type == 'special') {
         card.labels.push({ id: "6897f141a2b53de765c705e5", name: "SPECIAL" });
+    } else {
+        throw new Error(`Supplied case_type: ${case_type} has not been added yet,`);
     }
 
     // Update labels (set card's labels to match card.labels array)
@@ -123,6 +128,8 @@ export async function updateTrelloCard(card: CaseCard, case_type: string) {
         token: apiToken,
         value: labelIds,
     });
+    
+    console.log(card.labels);
 
     const labelsUpdateRes = await fetch(
         `https://api.trello.com/1/cards/${card.id}/idLabels?${labelUpdateParams.toString()}`,
@@ -133,6 +140,96 @@ export async function updateTrelloCard(card: CaseCard, case_type: string) {
 
     if (!labelsUpdateRes.ok) {
         throw new Error(`Failed to update card labels: ${await labelsUpdateRes.text()}`);
+    }
+}
+
+export async function getCardFromLink(link: string): Promise<CaseCard> {
+    const apiKey = process.env.TRELLO_API_KEY!;
+    const apiToken = process.env.TRELLO_TOKEN!;
+
+    // Extract shortLink from the URL
+    let short_link;
+    if (link) {
+        const match = link.match(/trello\.com\/c\/([a-zA-Z0-9]+)/);
+        if (!match) throw new Error("Invalid Trello card URL");
+        short_link = match[1];
+    } else {
+        throw new Error(`Failed to get link: ${link}`);
+    }
+
+    // Fetch card details
+    const res = await fetch(
+        `https://api.trello.com/1/cards/${short_link}?key=${apiKey}&token=${apiToken}`
+    );
+    if (!res.ok) {
+        throw new Error(`Failed to fetch card: ${res.statusText}`);
+    }
+
+    let card = await res.json();
+    return {
+        id: card.id,
+        name: card.name,
+        description: card.desc,
+        url: card.url,
+        labels: (card.labels || []).map((label: any) => ({
+            id: label.id,
+            name: label.name,
+        })),
+        deadline: card.due || "", // empty string if no due date
+        boardId: card.idBoard,
+    }
+}
+
+export async function moveCaseCardToCategory(card: CaseCard, list_name: string) {
+    const apiKey = process.env.TRELLO_API_KEY!;
+    const apiToken = process.env.TRELLO_TOKEN!;
+
+    let res;
+    if (list_name == "Docket") {
+        const res1 = await fetch(
+            `https://api.trello.com/1/boards/${CIRCUIT_COURT_BOARD_ID}/lists?key=${apiKey}&token=${apiToken}`
+        );
+
+        if (!res1.ok) {
+            throw new Error(`Failed to fetch lists: ${res1.statusText}`);
+        }
+
+        const lists: any[] = await res1.json();
+        const list = lists.find(l => l.name.toLowerCase() === list_name.toLowerCase());
+
+        if (!list) {
+            throw new Error(`List "${list_name}" not found on board ${CIRCUIT_COURT_BOARD_ID}`);
+        }
+
+        res = await fetch(
+            `https://api.trello.com/1/cards/${card.id}?key=${apiKey}&token=${apiToken}&idList=${list.id}`,
+            { method: "PUT" }
+        );   
+    } else {
+        const res1 = await fetch(
+            `https://api.trello.com/1/boards/${COUNTY_COURT_BOARD_ID}/lists?key=${apiKey}&token=${apiToken}`
+        );
+
+        if (!res1.ok) {
+            throw new Error(`Failed to fetch lists: ${res1.statusText}`);
+        }
+
+        const lists: any[] = await res1.json();
+        const list = lists.find(l => l.name.toLowerCase() === list_name.toLowerCase());
+
+        if (!list) {
+            throw new Error(`List "${list_name}" not found on board ${COUNTY_COURT_BOARD_ID}`);
+        }
+
+        res = await fetch(
+            `https://api.trello.com/1/cards/${card.id}?key=${apiKey}&token=${apiToken}&idList=${list.id}`,
+            { method: "PUT" }
+        );        
+    }
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to move card: ${res.status} ${res.statusText} - ${errText}`);
     }
 }
 
@@ -159,6 +256,7 @@ export async function getCardsFromList(list_id: string): Promise<CaseCard[]> {
             id: l.id,
             name: l.name,
         })),
+        boardId: c.boardId,
     }));
 }
 
@@ -171,7 +269,7 @@ export async function createCategoryNextTo(category_name: string, board_id: stri
     );
     const refList = await refListRes.json();
 
-    const newListRes = await fetch(
+    await fetch(
         `https://api.trello.com/1/lists?key=${apiKey}&token=${apiToken}`,
         {
             method: "POST",
@@ -185,7 +283,6 @@ export async function createCategoryNextTo(category_name: string, board_id: stri
     );
 }
 
-// TODO: Fix issue with this not propeprly removing the list :(
 export async function removeCategory(category_name: string, board_id: string) {
     const apiKey = process.env.TRELLO_API_KEY!;
     const apiToken = process.env.TRELLO_TOKEN!;

@@ -249,6 +249,12 @@ export async function execute(interaction: CommandInteraction) {
 					]
 				},
 				{
+                    id: interaction.guild!.roles.cache.find(role => role.name == "Chief Judge")!.id,
+                    allow: [
+                        PermissionFlagsBits.SendMessages
+                    ]
+                },
+				{
 					id: register_data.discord_id!,
 					allow: [
 						PermissionFlagsBits.SendMessages

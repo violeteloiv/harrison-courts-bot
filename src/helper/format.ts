@@ -35,6 +35,18 @@ export async function getCodeFromCaseType(case_type: string): Promise<string> {
     return Promise.resolve(ret);
 }
 
+export function getCaseTypeFromCaseCode(case_code: string): string {
+    let id = case_code.slice(1, 3);
+    if (id == "CV") return "civil";
+    if (id == "CM") return "criminal";
+    if (id == "EX") return "expungement";
+    if (id == "SP") return "special";
+    if (id == "AP") return "appeal";
+    if (id == "AD") return "admin";
+
+    throw new Error("Invalid case_code");
+}
+
 export function generateFilingID(): string {
     return "F-" + generator({ chars: 'base32' }).generate(14);
 }

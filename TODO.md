@@ -20,6 +20,9 @@
 - [ ] Pending Cases Command
     - [ ] Implement a page system when there are more than a certain amount of cases.
 
+- [ ] Assign Cases Command
+    - [ ] Make it so that it creates a document and a filing under the case.
+
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case
     - [X] Review the currently pending cases

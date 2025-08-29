@@ -128,6 +128,16 @@ export async function insertCase(case_code: string, judge: string, card_link: st
     await pool.query(sql);
 }
 
+export async function updateJudgeUsingCaseCode(case_code: string, judge: string) {
+    let sql = `UPDATE cases SET judge=${judge} WHERE case_code='${case_code}';`;
+    await pool.query(sql);
+}
+
+export async function updateStatusUsingCaseCode(case_code: string, status: string) {
+    let sql = `UPDATE cases SET status=${status} WHERE case_code='${case_code}';`;
+    await pool.query(sql);
+}
+
 export async function getCaseByCaseCode(case_code: string): Promise<any> {
     let sql = `SELECT * FROM cases WHERE case_code = '${case_code}'`;
     const get_result = await pool.query(sql);
