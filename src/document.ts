@@ -175,8 +175,19 @@ export async function createAndStoreNOA(data: NOAData): Promise<string> {
     }
 
     // Prettify data.
-    let plaintiffs = data.plaintiffs.join(", ");
-    let defendants = data.defendants.join(", ");
+
+    let plaintiffs, defendants;
+    if (data.plaintiffs.length > 1) {
+        plaintiffs = `${data.plaintiffs[0]} et al.`;
+    } else {
+        plaintiffs = `${data.plaintiffs[0]} v.`;
+    }
+
+    if (data.defendants.length > 1) {
+        defendants = `${data.defendants[0]} et al.`;
+    } else {
+        defendants = `${data.defendants[0]}`;
+    }
 
     // Fill out the template based on the data provided.
     try {
