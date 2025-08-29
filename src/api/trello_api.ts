@@ -128,8 +128,6 @@ export async function updateTrelloCard(card: CaseCard, case_type: string) {
         token: apiToken,
         value: labelIds,
     });
-    
-    console.log(card.labels);
 
     const labelsUpdateRes = await fetch(
         `https://api.trello.com/1/cards/${card.id}/idLabels?${labelUpdateParams.toString()}`,

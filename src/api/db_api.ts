@@ -134,7 +134,12 @@ export async function updateJudgeUsingCaseCode(case_code: string, judge: string)
 }
 
 export async function updateStatusUsingCaseCode(case_code: string, status: string) {
-    let sql = `UPDATE cases SET status=${status} WHERE case_code='${case_code}';`;
+    let sql = `UPDATE cases SET status='${status}' WHERE case_code='${case_code}';`;
+    await pool.query(sql);
+}
+
+export async function updateChannelUsingCaseCode(case_code: string, channel: string) {
+    let sql = `UPDATE cases SET channel=${channel} WHERE case_code='${case_code}';`;
     await pool.query(sql);
 }
 

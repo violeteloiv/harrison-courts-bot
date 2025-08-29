@@ -1,6 +1,6 @@
-import { CategoryChannel, ChannelType, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder, User } from "discord.js";
+import { CategoryChannel, ChannelType, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, GuildChannel, PermissionFlagsBits, SlashCommandBuilder, User } from "discord.js";
 import { createErrorEmbed, getCaseTypeFromCaseCode, longMonthDayYearFormat } from "../helper/format";
-import { getCaseByCaseCode, getPermissionFromDiscordID, getUserFromDiscordID, updateJudgeUsingCaseCode, updateStatusUsingCaseCode } from "../api/db_api";
+import { getCaseByCaseCode, getPermissionFromDiscordID, getUserFromDiscordID, updateChannelUsingCaseCode, updateJudgeUsingCaseCode, updateStatusUsingCaseCode } from "../api/db_api";
 import { permissions_list } from "../config";
 import { getCardFromLink, getTrelloDueDate, moveCaseCardToCategory, updateTrelloCard } from "../api/trello_api";
 
@@ -66,7 +66,7 @@ export async function execute(interaction: CommandInteraction) {
     // Check the permissions of the user.
     let permission = await getPermissionFromDiscordID(interaction.user.id);
     if ((permission & permissions_list.CLERK) == 0 && (permission & permissions_list.ADMINISTRATOR) == 0) {
-        return await interaction.followUp({ embeds: [createErrorEmbed("Permission Error", "Must be a judge or clerk to run this command.")] });
+        return await interaction.editReply({ embeds: [createErrorEmbed("Permission Error", "Must be a judge or clerk to run this command.")] });
     }
 
     const chatInteraction = interaction as ChatInputCommandInteraction;
@@ -76,27 +76,34 @@ export async function execute(interaction: CommandInteraction) {
     if (await verify_inputs(interaction, case_id, judge_user)) return;
 
     try {
+        let court_case = await getCaseByCaseCode(case_id);
+
         // Update the case in the database.
         await updateJudgeUsingCaseCode(case_id, judge_user.id);
-        let court_case = await getCaseByCaseCode(case_id);
-        let judge_nickname = (await interaction.guild!.members.fetch(judge_user.id)).nickname
+        let judge_nickname = (await interaction.guild!.members.fetch(judge_user.id)).nickname;
 
         // Update the trello card.
         let card = await getCardFromLink(court_case.card_link);
         card.description = card.description.replace(/(\*\*Presiding Judge:\*\*\s*)(.+)/, `$1${judge_nickname}`);
         card.description = card.description.replace(/(\*\*Date Assigned:\*\*\s*)(.+)/, `$1${longMonthDayYearFormat(new Date())}`);
         card.deadline = getTrelloDueDate(3);
-        card.labels = [];
-        if (card.boardId == COUNTY_COURT_BOARD_ID) {
-            card.labels.push({
-                id: "68929e8db5fe44776b435764", name: "PRE-TRIAL"
-            });
-            await updateStatusUsingCaseCode(case_id, "pre-trial");
+        
+        if (court_case.status == "pending") {
+            card.labels = [];
+            if (card.boardId == COUNTY_COURT_BOARD_ID) {
+                card.labels.push({
+                    id: "68929e8db5fe44776b435764", name: "PRE-TRIAL"
+                });
+                await updateStatusUsingCaseCode(case_id, "pre-trial");
+            } else {
+                card.labels.push({
+                    id: "689a6a1749d97535aca1b04e", name: "CONSIDERATION"
+                });
+                await updateStatusUsingCaseCode(case_id, "consideration");
+            }
         } else {
-            card.labels.push({
-                id: "689a6a1749d97535aca1b04e", name: "CONSIDERATION"
-            });
-            await updateStatusUsingCaseCode(case_id, "consideration");
+            let case_type_arr = ["CIVIL", "CRIMINAL", "EXPUNGEMENT", "SPECIAL", "APPEAL", "ADMIN"];
+            card.labels = card.labels.filter(label => !case_type_arr.includes(label.name));
         }
 
         let case_type = getCaseTypeFromCaseCode(case_id);
@@ -108,27 +115,22 @@ export async function execute(interaction: CommandInteraction) {
         }
 
         // Create the case channel in the relevant category.
-        const category = interaction.guild!.channels.cache.find(
-            channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
-        ) as CategoryChannel;
+        if (court_case.status == "pending") {
+            let category;
 
-        await interaction.guild!.channels.create({
-            name: `${card.name}`,
-            type: ChannelType.GuildText,
-            parent: category.id,
-            permissionOverwrites: [
+            let perm_overwrites = [
                 {
                     id: interaction.guild!.roles.everyone.id,
-                    deny: [
-                        PermissionFlagsBits.AddReactions,
-                        PermissionFlagsBits.AttachFiles,
-                        PermissionFlagsBits.CreatePrivateThreads,
-                        PermissionFlagsBits.CreatePublicThreads,
-                        PermissionFlagsBits.SendMessages
-                    ],
-                    allow: [
-                        PermissionFlagsBits.ViewChannel
-                    ]
+                        deny: [
+                            PermissionFlagsBits.AddReactions,
+                            PermissionFlagsBits.AttachFiles,
+                            PermissionFlagsBits.CreatePrivateThreads,
+                            PermissionFlagsBits.CreatePublicThreads,
+                            PermissionFlagsBits.SendMessages
+                        ],
+                        allow: [
+                            PermissionFlagsBits.ViewChannel
+                        ]
                 },
                 {
                     id: interaction.guild!.roles.cache.find(role => role.name == "Deputy Clerk")!.id,
@@ -147,15 +149,49 @@ export async function execute(interaction: CommandInteraction) {
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
-                },
-                {
+                },  
+            ]
+
+            if (case_type == "appeal" || case_type == "admin") {
+                category = interaction.guild!.channels.cache.find(
+                    channel => channel.name == `Circuit Court` && channel.type == ChannelType.GuildCategory
+                ) as CategoryChannel;
+
+                perm_overwrites.push({
+                    id: interaction.guild!.roles.cache.find(role => role.name == "Circuit Judge")!.id,
+                    allow: [
+                        PermissionFlagsBits.SendMessages
+                    ]
+                })
+            } else {
+                category = interaction.guild!.channels.cache.find(
+                    channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
+                ) as CategoryChannel;
+
+                perm_overwrites.push({
                     id: judge_user.id,
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
-                }
-            ]
-        });
+                })
+            }
+
+            let channel = await interaction.guild!.channels.create({
+                name: `${card.name}`,
+                type: ChannelType.GuildText,
+                parent: category.id,
+                permissionOverwrites: perm_overwrites
+            });
+            
+            await updateChannelUsingCaseCode(case_id, channel.id);
+        } else {
+            // Move the channel to the new category.
+            let channel = interaction.guild!.channels.cache.find(channel => channel.id == court_case.channel) as GuildChannel;
+            let category = interaction.guild!.channels.cache.find(
+                channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
+            ) as CategoryChannel;
+            channel.setParent(category.id, { lockPermissions: false });
+        }
 
         const embed = new EmbedBuilder()
             .setTitle("Success!")
@@ -163,8 +199,8 @@ export async function execute(interaction: CommandInteraction) {
             .setColor("#9853b5")
             .setTimestamp();
 
-        return await interaction.followUp({ embeds: [embed], ephemeral: false });
+        return await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        return await interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)] });
+        return await interaction.editReply({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)] });
     }
 }
