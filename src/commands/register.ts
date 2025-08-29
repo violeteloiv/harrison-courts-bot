@@ -6,6 +6,8 @@ import { getBarDatabaseDataFromUsername } from "../database/sheet_api";
 import { createErrorEmbed, getPermissionString } from "../helper/format";
 import { isUserInGroup } from "../database/ro_api";
 import { client } from "../client";
+import { createCategoryNextTo, removeCategory } from "../database/trello_api";
+import { register } from "module";
 
 export const data = new SlashCommandBuilder()
     .setName("register")
@@ -118,7 +120,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 		permission = permission | permissions_list.DEPUTY_CLERK;
 	}
 
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge") // roblox_id == 370917506
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge")
 			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge")) {
 		permission = permission | permissions_list.CIRCUIT_JUDGE;
 	}
@@ -203,15 +205,16 @@ export async function execute(interaction: CommandInteraction) {
 
 	let guild = await client.guilds.fetch(COURTS_SERVER_ID);
 	await guild.channels.fetch();
-
+	
 	// Someone just got judicial perms!!!
-	if ((register_data.old_perms! & permissions_list.JUDGE) == 0 && (register_data.new_perms! & permissions_list.JUDGE) > 0) {
-		const refCategory = guild.channels.cache.find((c): c is CategoryChannel => c.name === "Circuit Court" && c.type === ChannelType.GuildCategory);
+	if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) == 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0) {
+		// Create the category
+		const refCategory = guild.channels.cache.find((c): c is CategoryChannel => c.name === "Duty Court" && c.type === ChannelType.GuildCategory);
 		const category = await guild.channels.create({
 			name: `Chambers of ${register_data.username!}`,
 			type: ChannelType.GuildCategory,
 		})
-		category.setPosition(refCategory?.position! + 1);
+		category.setPosition(refCategory?.position! - 1);
 
 		// Create an information channel under the category.
 		await guild.channels.create({
@@ -252,6 +255,12 @@ export async function execute(interaction: CommandInteraction) {
 				}
 			]
 		});
+
+		try {
+			await createCategoryNextTo(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721", "6892a37a0cf6d3d722bc6bec");
+		} catch (error) {
+			interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+		}
 	}
 
 	// Someone lost their judicial perms :(
@@ -267,5 +276,13 @@ export async function execute(interaction: CommandInteraction) {
 		})
 
 		category?.delete();
+
+		// TODO: Handle the transfer of trello cards here.
+
+		try {
+			await removeCategory(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721");
+		} catch (error) {
+			interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+		}
 	}
 }

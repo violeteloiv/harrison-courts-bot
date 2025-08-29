@@ -162,6 +162,56 @@ export async function getCardsFromList(list_id: string): Promise<CaseCard[]> {
     }));
 }
 
+export async function createCategoryNextTo(category_name: string, board_id: string, reference_list_id: string) {
+    const apiKey = process.env.TRELLO_API_KEY!;
+    const apiToken = process.env.TRELLO_TOKEN!;
+
+    const refListRes = await fetch(
+        `https://api.trello.com/1/lists/${reference_list_id}?key=${apiKey}&token=${apiToken}`
+    );
+    const refList = await refListRes.json();
+
+    const newListRes = await fetch(
+        `https://api.trello.com/1/lists?key=${apiKey}&token=${apiToken}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: category_name,
+                idBoard: board_id,
+                pos: refList.pos - 1,
+            }),
+        }
+    );
+}
+
+// TODO: Fix issue with this not propeprly removing the list :(
+export async function removeCategory(category_name: string, board_id: string) {
+    const apiKey = process.env.TRELLO_API_KEY!;
+    const apiToken = process.env.TRELLO_TOKEN!;
+
+    const res = await fetch(
+        `https://api.trello.com/1/boards/${board_id}/lists?key=${apiKey}&token=${apiToken}`
+    );
+    const lists = await res.json();
+
+    const list = lists.find((l: any) => l.name === category_name);
+    if (!list) {
+        throw new Error(`List with name "${category_name}" not found on board ${board_id}`);
+    }
+
+    const remove_res = await fetch(
+        `https://api.trello.com/1/lists/${list.id}?key=${apiKey}&token=${apiToken}&closed=true`,
+        {
+            method: "PUT",
+        }
+    );
+
+    if (!remove_res.ok) {
+        throw new Error(`Failed to archive list: ${remove_res.statusText}`);
+    }
+}
+
 export function getTrelloDueDate(daysFromNow: number): string {
   const now = new Date();
   now.setDate(now.getDate() + daysFromNow);
