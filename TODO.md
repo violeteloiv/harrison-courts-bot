@@ -21,6 +21,7 @@
         - [ ] Figure out what things are required for this.
         - [ ] Create the trello implementations for the appeals filing.
     - [X] Add support for filing PDFs directly.
+    - [ ] Register users by trying to find their username in the discord, and fall back on something else (TBD)
     - [ ] Add a five minute cooldown between running the command.
     - [ ] Remove NOA filing for petitions.
 

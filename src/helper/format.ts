@@ -48,6 +48,10 @@ export function formatDateUTC(date: Date): string {
     return `${mm}/${dd}/${yy} ${hh}:${min} UTC`;
 }
 
+export function longMonthDayYearFormat(date: Date): string {
+    return `${date.toLocaleString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
 export function createErrorEmbed(title: string, description: string) {
     return new EmbedBuilder()
         .setTitle(title)
