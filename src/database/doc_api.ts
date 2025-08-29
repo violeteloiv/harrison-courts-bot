@@ -1,7 +1,9 @@
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import { Readable } from "stream";
-import getAuthClient from "./token";
+import getAuthClient from "../token";
+import { Attachment } from "discord.js";
+import axios from "axios";
 
 export interface NOAData {
     case_id: string,
@@ -116,6 +118,47 @@ export async function copyAndStoreDocument(doc: string, data: DefaultFilingData)
     return Promise.resolve(upload_response.data.webViewLink!);
 }
 
+export async function uploadAndStorePDF(attachment: Attachment, data: DefaultFilingData): Promise<string> {
+    let authClient;
+    try {
+        authClient =  await getAuthClient() as OAuth2Client;
+    } catch(error) {
+        return Promise.reject(error);
+    }
+
+    const drive = google.drive({ version: 'v3', auth: authClient });
+
+    const response = await axios.get(attachment.url, { responseType: 'stream' });
+    try {
+        const file = await drive.files.create({
+            requestBody: {
+                name: `${data.doc_type}, ${data.case_id}, ${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getDate()}, ${new Date().getFullYear()} ${new Date().getHours()}:${new Date().getMinutes()}`,
+                parents: [getDestinationFolder()],
+                mimeType: 'application/pdf'
+            },
+            supportsAllDrives: true,
+            media: { mimeType: 'application/pdf', body: response.data as Readable },
+            fields: 'id, webViewLink'
+        });
+
+        try {
+            await drive.permissions.create({
+                fileId: file.data.id!,
+                requestBody: {
+                    type: 'anyone',
+                    role: 'reader',
+                },
+            });
+        } catch (error) {
+            return Promise.reject(error);
+        }
+
+        return Promise.resolve(file.data.webViewLink!);
+    } catch (error) {
+        return Promise.reject(error);
+    }
+}
+
 export async function deleteDocuments(docs: string[]) {
     let authClient;
     try {
@@ -180,7 +223,7 @@ export async function createAndStoreNOA(data: NOAData): Promise<string> {
     if (data.plaintiffs.length > 1) {
         plaintiffs = `${data.plaintiffs[0]} et al.`;
     } else {
-        plaintiffs = `${data.plaintiffs[0]} v.`;
+        plaintiffs = `${data.plaintiffs[0]}`;
     }
 
     if (data.defendants.length > 1) {

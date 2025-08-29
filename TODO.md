@@ -12,16 +12,17 @@
 
 - [ ] File Case Command
     - [X] Make it so if multiple plaintiffs or defendants, it is Plaintiff et al v. Defendant et al
-    - [ ] Add error checking for mismatching numbers of doc types and documents.
-    - [ ] Implement the Appeal Filing System
-        - [ ] Check if the case is valid and in the system.
+    - [X] Add error checking for mismatching numbers of doc types and documents.
+    - [ ] Implement the Appeal Filing System (Needs /setstatus command)
+        - [ ] Check if the case is valid and in the system, and that there's been a ruling.
         - [ ] Check if the individual filing is a party to the case, or an attorney for a party.
         - [ ] Create the trello implementations for the appeals filing.
     - [ ] Implement the Admin Filing System
         - [ ] Figure out what things are required for this.
         - [ ] Create the trello implementations for the appeals filing.
-    - [ ] Add support for filing PDFs directly.
+    - [X] Add support for filing PDFs directly.
     - [ ] Add a five minute cooldown between running the command.
+    - [ ] Remove NOA filing for petitions.
 
 - [ ] Pending Cases Command
     - [ ] Implement a page system when there are more than a certain amount of cases.

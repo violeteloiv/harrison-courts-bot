@@ -46,7 +46,7 @@ function getPermissionString(perm: number): string {
 	return str;
 }
 
-export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User) {
+export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User | null) {
 	// Ensure this is being run inside of a discord server.
 	// TODO: Do a check to make sure this is being done in specific discord servers.
 	let member = interaction.member;
@@ -64,6 +64,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	let user_to_update;
 	if (targetUser) {
 		let runner_discord_id = interaction.user.id;
+		// TODO: Error checking
 		let permission = await getPermissionFromDiscordID(runner_discord_id);
 		if ((permission & permissions_list.JUDGE_PLUS) > 0) {
 			user_to_update = targetUser;
@@ -200,5 +201,5 @@ export async function execute(interaction: CommandInteraction) {
 	const chatInteraction = interaction as ChatInputCommandInteraction;
 	const targetUser = chatInteraction.options.getUser("user", false);
 
-	return await register_user(chatInteraction, targetUser!);
+	return await register_user(chatInteraction, targetUser);
 }
