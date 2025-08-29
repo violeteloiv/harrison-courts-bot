@@ -2,6 +2,9 @@ import noblox from "noblox.js";
 import { CommandInteraction, SlashCommandBuilder, GuildMember, EmbedBuilder, ChatInputCommandInteraction, User } from "discord.js";
 import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "../database/db_api";
 import { permissions_list } from "../config";
+import { getBarDatabaseDataFromUsername } from "../database/sheet_api";
+import { createErrorEmbed, getPermissionString } from "../helper/format";
+import { isUserInGroup } from "../database/ro_api";
 
 export const data = new SlashCommandBuilder()
     .setName("register")
@@ -13,69 +16,33 @@ export const data = new SlashCommandBuilder()
 	)
     .setDescription("Registers a user in the system.");
 
-function getPermissionString(perm: number): string {
-	let str = "- **Permissions:**";
-	if ((perm & permissions_list.RESIDENT) > 0) {
-		str += " `Resident`,";
-	}
-
-	if ((perm & permissions_list.PROSECUTOR) > 0) {
-		str += " `Prosecutor`,";
-	} else if ((perm & permissions_list.ATTORNEY) > 0) {
-		str += " `Attorney`,";
-	}
-
-	if ((perm & permissions_list.JUDGE) > 0) {
-		str += " `Judge`,";
-	}
-
-	if ((perm & permissions_list.CLERK) > 0) {
-		str += " `Clerk`,";
-	}
-
-	if ((perm & permissions_list.ADMINISTRATOR) > 0) {
-		str += " `Admin`,";
-	}
-
-	if (perm == 0) {
-		str += " `None`,";
-	}
-
-	str = str.slice(0, -1);
-
-	return str;
-}
+const COURTS_SERVER_ID = "967957262297624597";
+const DA_GROUP_ID = 32985413;
+const COURTS_GROUP_ID = 32305960;
 
 export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User | null) {
 	// Ensure this is being run inside of a discord server.
-	// TODO: Do a check to make sure this is being done in specific discord servers.
+	// TODO: Do a check to make sure this is being done in cop discords.
 	let member = interaction.member;
-	if (!member || !interaction.inGuild()) {
-		const embed = new EmbedBuilder()
-				.setTitle("Registration Error")
-				.setDescription("You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")
-				.setColor("#d93a3a")
-				.setTimestamp();
-
-		return interaction.reply({ embeds: [embed] });
+	if (!member || !interaction.inGuild() || interaction.guild?.id != COURTS_SERVER_ID) {
+		return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
 	}
 
 	// Get the user being updated in this interaction.
 	let user_to_update;
-	if (targetUser) {
+	if (targetUser && targetUser != interaction.user) {
 		let runner_discord_id = interaction.user.id;
-		// TODO: Error checking
-		let permission = await getPermissionFromDiscordID(runner_discord_id);
+		let permission;
+		try {
+			permission = await getPermissionFromDiscordID(runner_discord_id);
+		} catch (error) {
+			return interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+		}
+
 		if ((permission & permissions_list.JUDGE_PLUS) > 0) {
 			user_to_update = targetUser;
 		} else {
-			const embed = new EmbedBuilder()
-				.setTitle("Registration Error")
-				.setDescription("You do not have the permissions necessary. You must be a County Judge or above to register someone.")
-				.setColor("#d93a3a")
-				.setTimestamp();
-
-			return interaction.reply({ embeds: [embed] });
+			return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
 		}
 	} else {
 		user_to_update = interaction.user;
@@ -94,7 +61,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	// Ensure that the user has verified before running this command.
 	const roleNames = user_to_update.roles.cache.map(r => r.name);
 	if (!roleNames.includes("Verified")) {
-		return interaction.reply("Please verify with RoVer before running this command.");
+		return interaction.reply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
 	}
 
 	// Now, get the roblox ID using the API.
@@ -113,38 +80,42 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 		permission = permission | permissions_list.RESIDENT;
 	}
 
-	// TODO: Link with central BAR database when it exists to avoid issues with clerks who are also licensed attorneys not getting attorney positions.
-	if (roleNames.includes("Licensed Attorney")) {
-		permission = permission | permissions_list.ATTORNEY;
+	let bar_data = await getBarDatabaseDataFromUsername(discord_nickname);
+	if (bar_data) {
+		if (bar_data.status == "Active") {
+			permission = permission | permissions_list.ATTORNEY;
+		}
 	}
 
-	// TODO: Use the roblox group to determine if an individual is a prosecutor.
-	if (roleNames.includes("District Attorney") || roleNames.includes("District Attorney's Office")) {
+	if (await isUserInGroup(roblox_id, DA_GROUP_ID, "Assistant District Attorney")
+			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Senior Assistant District Attorney")
+			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Chief Assistant District Attorney")
+			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Deputy District Attorney")
+			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "District Attorney")) {
 		permission = permission | permissions_list.PROSECUTOR;
 	}
 
-	// TODO: Use the roblox group to determine if an individual is a county judge.
-	if ((roleNames.includes("Judge") && roleNames.includes("County Judge")) || roleNames.includes("Justice of the Peace")) {
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Justice of the Peace")
+			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "County Judge")) {
 		permission = permission | permissions_list.COUNTY_JUDGE;
 	}
 
-	// TODO: Use the roblox group to determine if an individual is a deputy clerk.
-	if (roleNames.includes("Deputy Clerk")) {
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Deputy Clerk")) {
 		permission = permission | permissions_list.DEPUTY_CLERK;
 	}
 
-	// TODO: Use the roblox group to determine if an individual is a circuit judge.
-	if (roleNames.includes("Judge") && roleNames.includes("Circuit Judge")) {
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge")
+			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge")) {
 		permission = permission | permissions_list.CIRCUIT_JUDGE;
 	}
 
-	// TODO: Use the roblox group to determine if an individual is a deputy clerk.
-	if (roleNames.includes("Chief Clerk")) {
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Clerk")) {
 		permission = permission | permissions_list.CHIEF_CLERK;
 	}
 
-	// TODO: Use the roblox group and roblox IDs to determine if an individual is an administrator.
-	if (roleNames.includes("Chief Judge") || roblox_id == 370917506) {
+	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge") 
+			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Administrative Judge")		
+			|| roblox_id == 370917506) {
 		permission = permission | permissions_list.ADMINISTRATOR;
 	}
 

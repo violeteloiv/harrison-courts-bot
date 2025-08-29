@@ -7,12 +7,9 @@
         - [ ] Delete all the channels under the judge's category.
         - [ ] Delete the category.
     - [ ] Get the specific discord server IDs for which the register command can be run.
-    - [ ] Integrate with the BAR Database.
-    - [ ] Integrate with the roblox groups.
+        - [ ] Integrate Police Permissions.
 
 - [ ] File Case Command
-    - [X] Make it so if multiple plaintiffs or defendants, it is Plaintiff et al v. Defendant et al
-    - [X] Add error checking for mismatching numbers of doc types and documents.
     - [ ] Implement the criminal filing system.
     - [ ] Implement the expungement filing system.
     - [ ] Implement the special cases filing system.
@@ -20,10 +17,8 @@
         - [ ] Check if the case is valid and in the system, and that there's been a ruling.
         - [ ] Check if the individual filing is a party to the case, or an attorney for a party.
         - [ ] Create the trello implementations for the appeals filing.
-    - [X] Add support for filing PDFs directly.
     - [ ] Register users by trying to find their username in the discord, and fall back on something else (TBD)
     - [ ] Add a five minute cooldown between running the command.
-    - [ ] Remove NOA filing for petitions.
 
 - [ ] Pending Cases Command
     - [ ] Implement a page system when there are more than a certain amount of cases.
