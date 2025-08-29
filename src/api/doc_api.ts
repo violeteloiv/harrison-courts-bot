@@ -11,7 +11,11 @@ export interface DefaultFilingData {
 }
 
 const folder_ids: { [key: string]: string } = {
-    ["August 2025"]: "19ha5_Uhx0cyhlQ37N9mEmgm4jq-1DHq3"
+    ["August 2025"]: "19ha5_Uhx0cyhlQ37N9mEmgm4jq-1DHq3",
+    ["September 2025"]: "14sdXP_dGlQkkxquKy6pFhEYMV-GWm5Jp",
+    ["October 2025"]: "",
+    ["November 2025"]: "",
+    ["December 2025"]: "",
 }
 
 export function getDestinationFolder(): string {

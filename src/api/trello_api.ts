@@ -3,7 +3,7 @@ interface Label {
     name: string;
 }
 
-interface CaseCard {
+export interface CaseCard {
     id: string;
     name: string;
     description: string;

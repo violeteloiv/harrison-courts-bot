@@ -1,8 +1,8 @@
 import { EmbedBuilder, Message } from "discord.js";
 import { Answer, Form } from "../helper/form";
-import { capitalizeEachWord, createErrorEmbed, formatDateUTC, generateFilingID, getCodeFromCaseType } from "../helper/format";
+import { capitalizeEachWord, createErrorEmbed, formatDateUTC, getCodeFromCaseType, getUniqueFilingID } from "../helper/format";
 import { permissions_list } from "../config";
-import { getCurrentCaseCodes, getFilingByID, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";
+import { getCurrentCaseCodes, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";
 import noblox from "noblox.js";
 import { copyAndStoreDocument, uploadAndStorePDF } from "../api/doc_api";
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
@@ -208,10 +208,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
         let current_codes = await getCurrentCaseCodes();
         await updateSpecificCaseCode("civil", current_codes["civil"] + 1);  
 
-        let filing_id = generateFilingID();
-        while (await getFilingByID(filing_id)) {
-            filing_id = generateFilingID();
-        }
+        let filing_id = await getUniqueFilingID();
 
         if (processed_doc_types.length != 0) {
             await insertFiling(filing_id, case_code, "Plaintiff", info.id, processed_doc_types, processed_docs);

@@ -1,7 +1,8 @@
 import { generator } from "rand-token";
-import { getCurrentCaseCodes } from "../api/db_api";
+import { getCurrentCaseCodes, getFilingByID } from "../api/db_api";
 import { CommandInteraction, EmbedBuilder, ModalSubmitInteraction } from "discord.js";
 import { permissions_list } from "../config";
+import { CaseCard } from "../api/trello_api";
 
 export async function getCodeFromCaseType(case_type: string): Promise<string> {
     let ret = "";
@@ -126,4 +127,23 @@ export function getPermissionString(perm: number): string {
     str = str.slice(0, -1);
 
     return str;
+}
+
+export async function getUniqueFilingID(): Promise<string> {
+    let filing_id = generateFilingID();
+    while (await getFilingByID(filing_id)) {
+        filing_id = generateFilingID();
+    }
+    return filing_id;
+}
+
+export function updateFilingRecord(desc: string, doc_types: string[], doc_links: string[], filed_by: string): string {
+    if (doc_types.length != doc_links.length) throw new Error("doc_types and doc_links do not have the same length");
+
+    let new_desc = desc;
+    for (let i = 0; i < doc_types.length; i++) {
+        new_desc += `${formatDateUTC(new Date())} | [${doc_types[i]}](${doc_links[i]}) - Filed By: ${filed_by}\n`;
+    }
+
+    return new_desc;
 }
