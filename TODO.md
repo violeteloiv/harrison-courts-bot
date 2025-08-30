@@ -1,5 +1,4 @@
 - [ ] Register Command
-    - [ ] When gaining judge permissions:
     - [ ] When losing judge permissions:
         - [ ] Transfer all cases assigned to the judge to "PENDING".
         - [ ] Transfer all case channels to a separate category.
@@ -25,7 +24,7 @@
     - [X] Review the currently pending cases
     - [X] Assign the case to a judge
         - [X] Ability to reassign cases
-    - [ ] Notice of Appearance
+    - [X] Notice of Appearance
     - [ ] Summons system
         - [ ] Adding person to channel
         - [ ] Removing person from channel
