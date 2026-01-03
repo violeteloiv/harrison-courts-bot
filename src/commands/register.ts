@@ -36,7 +36,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	// TODO: Do a check to make sure this is being done in cop discords.
 	let member = interaction.member;
 	if (!member || !interaction.inGuild() || interaction.guild?.id != COURTS_SERVER_ID) {
-		interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
+		interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
 		return { new_perms: -1 };
 	}
 
@@ -48,14 +48,14 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 		try {
 			permission = await getPermissionFromDiscordID(runner_discord_id);
 		} catch (error) {
-			interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+			interaction.editReply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
 			return { new_perms: -1 };
 		}
 
 		if ((permission & permissions_list.JUDGE_PLUS) > 0) {
 			user_to_update = targetUser;
 		} else {
-			interaction.reply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
+			interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
 			return { new_perms: -1 };
 		}
 	} else {
@@ -75,7 +75,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	// Ensure that the user has verified before running this command.
 	const roleNames = user_to_update.roles.cache.map(r => r.name);
 	if (!roleNames.includes("Verified")) {
-		interaction.reply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
+		interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
 		return { new_perms: -1 };
 	}
 
@@ -84,7 +84,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 	try {
 		roblox_id = await noblox.getIdFromUsername(discord_nickname);
 	} catch (error) {
-		interaction.reply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+		interaction.editReply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
 		return { new_perms: -1 };
 	}
 	
@@ -165,7 +165,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 
 		await insertUser(discord_id, roblox_id, permission);
 
-		interaction.reply({ embeds: [embed]});
+		interaction.editReply({ embeds: [embed]});
 		return {
 			new_perms: permission, 
 			old_perms: user.permission,
@@ -185,7 +185,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 
 		await insertUser(discord_id, roblox_id, permission);
 
-		interaction.reply({ embeds: [embed]});
+		interaction.editReply({ embeds: [embed]});
 		return {
 			new_perms: permission, 
 			old_perms: -1,
@@ -198,6 +198,7 @@ export async function register_user(interaction: ChatInputCommandInteraction, ta
 export async function execute(interaction: CommandInteraction) {
 	// Check if a user is specified.
 	const chatInteraction = interaction as ChatInputCommandInteraction;
+	interaction.deferReply();
 	const targetUser = chatInteraction.options.getUser("user", false);
 
 	let register_data: RegisterData = await register_user(chatInteraction, targetUser);

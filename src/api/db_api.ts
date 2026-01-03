@@ -143,6 +143,17 @@ export async function updateChannelUsingCaseCode(case_code: string, channel: str
     await pool.query(sql);
 }
 
+export async function updateRepresentingAttorneysUsingCaseCode(case_code: string, attorney: string, party: string) {
+    let sql;
+    if (party == 'plaintiff') {
+        sql = `UPDATE cases SET representing_plaintiffs = array_append(representing_plaintiffs, ${attorney});`;
+    } else {
+        sql = `UPDATE cases SET representing_defendants = array_append(representing_defendants, ${attorney});`;
+    }
+
+    await pool.query(sql);
+}
+
 export async function getCaseByCaseCode(case_code: string): Promise<any> {
     let sql = `SELECT * FROM cases WHERE case_code = '${case_code}'`;
     const get_result = await pool.query(sql);

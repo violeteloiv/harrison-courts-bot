@@ -1,9 +1,10 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, GuildChannel, SlashCommandBuilder } from "discord.js";
-import { getCaseByCaseCode, getPermissionFromDiscordID, insertFiling } from "../api/db_api";
+import { getCaseByCaseCode, getPermissionFromDiscordID, insertFiling, updateRepresentingAttorneysUsingCaseCode } from "../api/db_api";
 import { permissions_list } from "../config";
-import { createErrorEmbed, getCaseTypeFromCaseCode, getUniqueFilingID } from "../helper/format";
+import { createErrorEmbed, getCaseTypeFromCaseCode, getUniqueFilingID, updateFilingRecord } from "../helper/format";
 import { createAndStoreNOA } from "../api/documents/noa";
 import { getBarDatabaseDataFromUsername } from "../api/sheet_api";
+import { getCardFromLink, updateTrelloCard } from "../api/trello_api";
 
 export const data = new SlashCommandBuilder()
     .setName("noa")
@@ -16,7 +17,7 @@ export const data = new SlashCommandBuilder()
     .addStringOption(option =>
         option
             .setName("party")
-            .setDescription("The case code for the case you wish to file an NOA for.")
+            .setDescription("The party for which you are filing an NOA for.")
             .setChoices([
                 { name: "Plaintiff", value: "plaintiff" },
                 { name: "Defendant", value: "defendant" },
@@ -82,13 +83,20 @@ export async function execute(interaction: CommandInteraction) {
         let filing_id = await getUniqueFilingID();
         await insertFiling(filing_id, case_code, party.toLowerCase(), interaction.user.id, ["Notice of Appearance"], [noa]);
 
-        // TODO: Update TRELLO Card
+        processing_embed.setDescription('Updating the trello with your NOA...');
+        await interaction.editReply({ embeds: [processing_embed ]});
+
+        let card = await getCardFromLink(court_case.card_link);
+        card.description = updateFilingRecord(card.description, ["Notice of Appearance"], [noa], nickname!);
+        await updateTrelloCard(card, case_type);
         
         // Give the user permissions to speak in the channel
         let channel = interaction.guild!.channels.cache.get(court_case.channel)! as GuildChannel;
         channel.permissionOverwrites.edit(interaction.user.id, {
             SendMessages: true,
         });
+
+        await updateRepresentingAttorneysUsingCaseCode(case_code, interaction.user.id, party);
 
         processing_embed.setDescription(`You should now be able to speak in <#${court_case.channel}>! Thanks for your patience :)`);
         await interaction.editReply({ embeds: [processing_embed ]});

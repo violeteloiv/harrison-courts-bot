@@ -7,6 +7,7 @@ import noblox from "noblox.js";
 import { copyAndStoreDocument, uploadAndStorePDF } from "../api/doc_api";
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
 import { createAndStoreNOA } from "../api/documents/noa";
+import { doesUsernameExist } from "../api/ro_api";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -18,7 +19,7 @@ export function createCivilFilingForm(): Form {
     let form: Form = { questions: [] };
 
     form.questions.push({
-        question: "Please respond with a list of plaintiffs in a comma separated list.",
+        question: "Please respond with a list of plaintiffs as a command separated list of roblox usernames.",
         callback: (message: Message, responses: any[]) => {
             if (message.content == "") return { name: "invalid", value: createErrorEmbed("Form Error", "You must have plaintiffs to file a civil action.") };
 
@@ -28,7 +29,7 @@ export function createCivilFilingForm(): Form {
     });
 
     form.questions.push({
-        question: "Please respond with a list of defendants in a comma separated list.",
+        question: "Please respond with a list of defendants as a command separated list of roblox usernames.",
         callback: (message: Message, responses: any[]) => {
             if (message.content == "") return { name: "error", value: createErrorEmbed("Form Error", "You must have defendants to file a civil action.") };
 
@@ -94,7 +95,7 @@ export function createCivilFilingForm(): Form {
             } else {
                 let docs = message.content.split(",").map(item => item.trim());
                 for (let i = 0; i < docs.length; i++) {
-                    if (docs[i].match("/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/")) 
+                    if (docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/)) 
                         return { name: "error", value: createErrorEmbed("Form Error", "If submitting links, you can only submit Google Document Links") };
                 }
 

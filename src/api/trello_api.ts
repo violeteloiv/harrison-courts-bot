@@ -115,6 +115,8 @@ export async function updateTrelloCard(card: CaseCard, case_type: string) {
         card.labels.push({ id: "6897f13b58f531982d709450", name: "EXPUNGEMENT" });
     } else if (case_type == 'special') {
         card.labels.push({ id: "6897f141a2b53de765c705e5", name: "SPECIAL" });
+    } else if (case_type == 'admin') {
+        card.labels.push({ id: "6892a4c496df6092610ed6d5", name: "ADMIN" });
     } else {
         throw new Error(`Supplied case_type: ${case_type} has not been added yet,`);
     }
