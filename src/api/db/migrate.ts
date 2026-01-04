@@ -6,9 +6,7 @@ const migrations: Migration[] = [
     m001,
 ];
 
-export async function db_run_migrations() {
-    const db = new DatabaseClient();
-
+export async function db_run_migrations(db: DatabaseClient) {
     try {
         await db.query("BEGIN");
 

@@ -9,6 +9,9 @@ const ALLOWED_TYPES = new Set([
     "UUID",
     "TIMESTAMP",
     "SERIAL",
+    "INT",
+    // CUSTOM TYPES:
+    "CASE_STATUS",
 ]);
 
 const VARCHAR_REGEX = /^VARCHAR\(\d+\)$/i;
@@ -37,7 +40,7 @@ export function assert_allowed_type(value: string) {
     const base_type = value.trim().split(/\s+/)[0].toUpperCase();
     if (ALLOWED_TYPES.has(base_type)) return;
     if (VARCHAR_REGEX.test(base_type)) return;
-    throw new Error("InvalidType");
+    throw new Error(`InvalidType: ${base_type}`);
 }
 
 export function build_update(table: string, column: string, placeholder: string = "$1") {

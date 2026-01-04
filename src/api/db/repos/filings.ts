@@ -7,8 +7,9 @@ export type Filing = {
     party: string;
     filed_by: string;
     filed_at?: Date;
-    types: string[];
-    documents: string[];
+
+    types?: { type: string }[];
+    documents?: { doc_link: string }[];
 }
 
 export class FilingRepository extends Repository<Filing> {
@@ -23,7 +24,8 @@ export class FilingRepository extends Repository<Filing> {
             {
                 table: "filing_documents",
                 foreign_key: "filing_id",
-                field_name: "documents", columns: ["documents"],
+                field_name: "documents", 
+                columns: ["doc_link"],
             }
         ]);
     }

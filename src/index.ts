@@ -4,11 +4,13 @@ import { deployCommands } from "./deploy-commands";
 import { client } from "./client";
 import { db_verify_connection } from "./api/db/pool";
 import { db_run_migrations } from "./api/db/migrate";
+import { DatabaseClient } from "./api/db/client";
 
 client.once("ready", async () => {
     // Verify the connection to the database.
     db_verify_connection();
-    db_run_migrations();
+    const db = new DatabaseClient();
+    db_run_migrations(db);
 
     // Deploy commands.
     for (const guild of client.guilds.cache.values()) {

@@ -8,7 +8,7 @@ export const migration: Migration = {
             { name: "discord_id", type: "BIGINT PRIMARY KEY" },
             { name: "roblox_id", type: "BIGINT UNIQUE NOT NULL" },
             { name: "permission", type: "SMALLINT NOT NULL DEFAULT 0" },
-            { name: "created", type: "timestamp NOT NULL DEFAULT now()" },
+            { name: "created", type: "TIMESTAMP NOT NULL DEFAULT now()" },
         ]);
 
         await db_create_table(db, "case_codes", [
@@ -17,7 +17,7 @@ export const migration: Migration = {
             { name: "criminal", type: "INT NOT NULL DEFAULT 0" },
             { name: "expungement", type: "INT NOT NULL DEFAULT 0" },
             { name: "special", type: "INT NOT NULL DEFAULT 0" },
-            { name: "appeal", type: "IN NOT NULL DEFAULT 0T" },
+            { name: "appeal", type: "INT NOT NULL DEFAULT 0" },
             { name: "admin", type: "INT NOT NULL DEFAULT 0" },
             { name: "duty_court", type: "INT NOT NULL DEFAULT 0" },
             { name: "update_at", type: "TIMESTAMP DEFAULT now()" },
@@ -33,7 +33,7 @@ export const migration: Migration = {
         `);
 
         await db_create_table(db, "cases", [
-            { name: "case_code", type: "VARCHAR(16) PRIMARY_KEY" },
+            { name: "case_code", type: "VARCHAR(16) PRIMARY KEY" },
             { name: "judge", type: "BIGINT REFERENCES users(discord_id)" },
             { name: "card_link", type: "VARCHAR(128)" },
             { name: "channel", type: "BIGINT" },
@@ -43,10 +43,10 @@ export const migration: Migration = {
         ]);
 
         await db_create_table(db, "case_parties", [
-            { name: "case_code", type: "VARCHAR(16) REFERENCES cases(case_id) ON DELETE CASCADE" },
-            { name: "user_id", type: "BIGINT REFERENCES userrs(discord_id)" },
-            { name: "role", type: "VARCHAR(16) CHECK (role IN ('plaintiff', 'defendant', 'p_counsel', 'd_counsel')"}
-        ], ["case_id", "user_id", "role"]);
+            { name: "case_code", type: "VARCHAR(16) REFERENCES cases(case_code) ON DELETE CASCADE" },
+            { name: "user_id", type: "BIGINT REFERENCES users(discord_id)" },
+            { name: "role", type: "VARCHAR(16) CHECK (role IN ('plaintiff', 'defendant', 'p_counsel', 'd_counsel'))"}
+        ], ["case_code", "user_id", "role"]);
 
         await db_create_table(db, "filings", [
             { name: "filing_id", type: "VARCHAR(16) PRIMARY KEY" },
