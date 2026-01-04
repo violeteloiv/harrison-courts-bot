@@ -62,7 +62,7 @@ async function authorize() {
   return oAuth2Client;
 }
 
-export default async function getAuthClient() {
+export default async function get_auth_client() {
   // Load credentials.json
   const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
   const { client_secret, client_id, redirect_uris } = creds.installed;
