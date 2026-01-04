@@ -4,7 +4,7 @@ import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "..
 import { permissions_list } from "../config";
 import { getBarDatabaseDataFromUsername } from "../api/sheet_api";
 import { createErrorEmbed, getPermissionString } from "../helper/format";
-import { isUserInGroup } from "../api/ro_api";
+import { isUserInGroup } from "../api/roblox";
 import { client } from "../client";
 import { createCategoryNextTo, removeCategory } from "../api/trello_api";
 import { register } from "module";

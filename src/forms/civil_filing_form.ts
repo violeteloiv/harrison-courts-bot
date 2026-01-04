@@ -7,7 +7,7 @@ import noblox from "noblox.js";
 import { copyAndStoreDocument, uploadAndStorePDF } from "../api/doc_api";
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
 import { createAndStoreNOA } from "../api/documents/noa";
-import { doesUsernameExist } from "../api/ro_api";
+import { doesUsernameExist } from "../api/roblox";
 
 export interface CivilCaseInfo {
     permission: number,
