@@ -1,13 +1,12 @@
 import { EmbedBuilder, Message } from "discord.js";
 import { Answer, Form } from "../helper/form";
-import { capitalizeEachWord, createErrorEmbed, formatDateUTC, getCodeFromCaseType, getUniqueFilingID } from "../helper/format";
-import { permissions_list } from "../config";
-import { getCurrentCaseCodes, getRobloxIDFromDiscordID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";
+import { capitalizeEachWord, createErrorEmbed, formatDateUTC, getCodeFromCaseType } from "../helper/format";
 import noblox from "noblox.js";
-import { copyAndStoreDocument, uploadAndStorePDF } from "../api/doc_api";
-import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
-import { createAndStoreNOA } from "../api/documents/noa";
-import { doesUsernameExist } from "../api/roblox";
+import { permissions_list } from "../config";
+import { create_and_store_noa } from "../api/google/documents";
+import { copy_and_store, upload_and_store } from "../api/google/doc";
+import { copy_case_card } from "../api/trello/service";
+import { update_card } from "../api/trello/card";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -132,7 +131,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
             embed.setDescription("Uploading your Notice of Appearance...");
             info.message.edit({ embeds: [embed] });
 
-            processed_docs.push(await createAndStoreNOA({
+            processed_docs.push(await create_and_store_noa({
                 case_id: case_code,
                 plaintiffs: plaintiffs,
                 defendants: defendants,
@@ -161,8 +160,8 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
                     embed.setDescription(`Uploading your ${doc_type}...`);
                     info.message.edit({ embeds: [embed] });
 
-                    processed_docs.push(await copyAndStoreDocument(gdrive_docs[i], {
-                        case_id: case_code, doc_type: doc_type
+                    processed_docs.push(await copy_and_store(gdrive_docs[i], {
+                        case_code: case_code, doc_type: doc_type
                     }));
                     processed_doc_types.push(doc_type);
                 }
@@ -173,8 +172,8 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
                     embed.setDescription(`Uploading your ${doc_type}...`);
                     info.message.edit({ embeds: [embed] });
 
-                    processed_docs.push(await uploadAndStorePDF(pdf_att[i], {
-                        case_id: case_code, doc_type: doc_type
+                    processed_docs.push(await upload_and_store(pdf_att[i], {
+                        case_code: case_code, doc_type: doc_type
                     }));
                     processed_doc_types.push(doc_type);
                 }
@@ -185,7 +184,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
         info.message.edit({ embeds: [embed] });
 
         // Upload to trello.
-        let case_card = await copyCaseCardFromTemplate("county", "civil", plaintiffs, defendants);
+        let case_card = await copy_case_card("county", "civil", plaintiffs, defendants);
         case_card.deadline = getTrelloDueDate(3);
 
         const case_card_header = `**Presiding Judge:** TBD\n**Date Assigned:** TBD\n**Docket #:** ${case_code}\n\n---\n\n**Record:**\n`;
@@ -200,7 +199,7 @@ export async function processCivilFilingForm(info: CivilCaseInfo, responses: any
             { id: "6897f11ed92e87ddd328ed1b", name: "CIVIL" },
         ]
 
-        await updateTrelloCard(case_card, "civil");
+        await update_card(case_card);
 
         embed.setDescription(`Information uploaded to trello! Find it [here](${case_card.url}).`);
         info.message.edit({ embeds: [embed] });

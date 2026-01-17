@@ -1,7 +1,7 @@
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
-import { client } from "./client";
+import { client } from "./api/discord/client";
 import { db_verify_connection } from "./api/db/pool";
 import { db_run_migrations } from "./api/db/migrate";
 import { DatabaseClient } from "./api/db/client";

@@ -1,3 +1,4 @@
+import { ASSIGNMENT_TEMPLATE_ID, NOA_TEMPLATE_ID, REASSIGNMENT_TEMPLATE_ID } from "../../config";
 import { create_template_document, TemplateUtils } from "./template";
 
 export interface AssignmentData {
@@ -9,30 +10,13 @@ export interface AssignmentData {
     username: string;
 }
 
-export interface NOAData {
-    case_id: string,
-    plaintiffs: string[],
-    defendants: string[],
-    presiding_judge: string,
-    jurisdiction: string,
-    username: string,
-    bar_number: number,
-    party: string,
-};
-
-export interface ReassignmentData {
-    case_code: string,
-    plaintiffs: string[],
-    defendants: string[],
-    presiding_judge: string,
-    jurisdiction: string,
-    username: string,
-};
-
-const ASSIGNMENT_TEMPLATE_ID = "1DBPAfDLCE43aBXcr5IgEfrmbi95FGNs45pZLMNmd7Cg";
-const NOA_TEMPLATE_ID = "1PaWRGt2VzWqWOB0yMEyMgUn5c7EpokRge7MB_-oLoeM";
-const REASSIGNMENT_TEMPLATE_ID = "1yfzR9WVyeEM4RHnwlxBZQjlWUD5bna4CsFvSSeTYeq8";
-
+/**
+ * Creates and stores a document corresponding to a case
+ * assignment to a judge.
+ * 
+ * @param data Data for the assignment
+ * @returns A link to the document
+ */
 export async function create_and_store_assignment(
     data: AssignmentData
 ): Promise<string> {
@@ -51,7 +35,25 @@ export async function create_and_store_assignment(
     });
 }
 
-export async function createAndStoreNOA(
+export interface NOAData {
+    case_id: string,
+    plaintiffs: string[],
+    defendants: string[],
+    presiding_judge: string,
+    jurisdiction: string,
+    username: string,
+    bar_number: number,
+    party: string,
+};
+
+/**
+ * Creates and stores a document corresponding to a notice
+ * or appearance for an attorney.
+ * 
+ * @param data Data for the NOA
+ * @returns A link to the document
+ */
+export async function create_and_store_noa(
     data: NOAData
 ): Promise<string> {
     return create_template_document({
@@ -71,6 +73,22 @@ export async function createAndStoreNOA(
     });
 }
 
+export interface ReassignmentData {
+    case_code: string,
+    plaintiffs: string[],
+    defendants: string[],
+    presiding_judge: string,
+    jurisdiction: string,
+    username: string,
+};
+
+/**
+ * Creates and stores a document corresponding to a case
+ * reassignment to a judge.
+ * 
+ * @param data Data for the reassignment
+ * @returns A link to the document
+ */
 export async function create_and_store_reassignment(
     data: ReassignmentData
 ): Promise<string> {

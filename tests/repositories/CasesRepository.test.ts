@@ -16,13 +16,13 @@ describe("CasesRepository", () => {
 
     test("get_by_id populates parties and filings correctly", async () => {
         // Insert users for parties
-        await users_repo.insert({
+        await users_repo.upsert({
             discord_id: "1",
             roblox_id: "10",
             permission: 10,
             created: new Date(),
         });
-        await users_repo.insert({
+        await users_repo.upsert({
             discord_id: "2",
             roblox_id: "11",
             permission: 10,
@@ -30,7 +30,7 @@ describe("CasesRepository", () => {
         });
 
         // Insert a case
-        await cases_repo.insert({
+        await cases_repo.upsert({
             case_code: "C-123",
             judge: "1",
             card_link: "link",
@@ -46,7 +46,7 @@ describe("CasesRepository", () => {
         });
 
         // Insert a filing associated with the case
-        await filings_repo.insert({
+        await filings_repo.upsert({
             filing_id: "F-456",
             case_code: "C-123",
             party: "plaintiff",

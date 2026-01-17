@@ -15,22 +15,13 @@ export const migration: Migration = {
             { name: "id", type: "SERIAL PRIMARY KEY" },
             { name: "civil", type: "INT NOT NULL DEFAULT 0" },
             { name: "criminal", type: "INT NOT NULL DEFAULT 0" },
-            { name: "expungement", type: "INT NOT NULL DEFAULT 0" },
-            { name: "special", type: "INT NOT NULL DEFAULT 0" },
-            { name: "appeal", type: "INT NOT NULL DEFAULT 0" },
+            { name: "limited", type: "INT NOT NULL DEFAULT 0" },
             { name: "admin", type: "INT NOT NULL DEFAULT 0" },
             { name: "duty_court", type: "INT NOT NULL DEFAULT 0" },
             { name: "update_at", type: "TIMESTAMP DEFAULT now()" },
         ]);
-        
-        await db.query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'case_status') THEN
-                    CREATE TYPE case_status AS ENUM ('open', 'closed', 'sealed', 'appealed', 'duty_court');
-                END IF;
-            END $$;
-        `);
+
+        await db.file_query("./001_init.sql");
 
         await db_create_table(db, "cases", [
             { name: "case_code", type: "VARCHAR(16) PRIMARY KEY" },

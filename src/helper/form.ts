@@ -1,5 +1,4 @@
 import { EmbedBuilder, GuildMember, Message } from "discord.js";
-import { createErrorEmbed } from "./format";
 
 interface Question {
     question: string,

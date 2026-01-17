@@ -1,3 +1,31 @@
+- [ ] Documentation
+    - [ ] API
+        - [ ] Database
+            - [ ] api/db/repos/filing.ts
+            - [ ] api/db/schema/create_table.ts
+            - [ ] api/db/migrate.ts
+            - [ ] api/db/migration.ts
+            - [ ] api/db/pool.ts
+            - [ ] api/db/sql.ts
+        - [ ] Google
+            - [ ] api/google/doc.ts
+            - [ ] api/google/drive.ts
+            - [ ] api/google/template.ts
+        - [ ] Trello
+            - [ ] api/trello/card.ts
+            - [ ] api/trello/client.ts
+            - [ ] api/trello/constants.ts
+            - [ ] api/trello/service.ts
+            - [ ] api/trello/types.ts
+        - [ ] api/roblox.ts
+    - [ ] Forms
+        - [ ] forms/civil_filing_form.ts
+        - [ ] forms/transfer_petition_form.ts
+    - [ ] Helper
+        - [ ] helper/form.ts
+        - [ ] helper/format.ts
+
+
 - [ ] Register Command
     - [ ] When losing judge permissions:
         - [ ] Transfer all cases assigned to the judge to "PENDING".

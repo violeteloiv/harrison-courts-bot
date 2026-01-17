@@ -1,6 +1,7 @@
 import { OAuth2Client } from "google-auth-library";
 import get_auth_client from "../../token";
 import { google } from "googleapis";
+import { BAR_DATABASE_RANGE, BAR_DATABASE_SPREADSHEET_ID } from "../../config";
 
 export interface BarData {
     bar_number: number,
@@ -9,14 +10,25 @@ export interface BarData {
     status: string,
 }
 
-const BAR_DATABASE_SPREADSHEET_ID = "1y6vbtjiGc4hlWY2PpNTlCHwXRNh07ZchgPz-qgS6dDE";
-const BAR_DATABASE_RANGE = "License Register!A1:H47";
-
+/**
+ * Gets the client which allows us to communicate with the
+ * sheets API.
+ * 
+ * @returns The API client
+ */
 export async function get_sheets_client() {
     const auth = (await get_auth_client()) as OAuth2Client;
     return google.sheets({ version: "v4", auth });
 }
 
+/**
+ * Gets data for a particular user from the bar database.
+ * 
+ * @param username The username for the user we are fetching
+ * data for
+ * @returns The bar data for the user, or undefined if no data
+ * exists 
+ */
 export async function get_bar_data(username: string) {
     const sheets = await get_sheets_client();
 

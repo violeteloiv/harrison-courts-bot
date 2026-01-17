@@ -1,13 +1,18 @@
+import { CategoryChannel, ChannelType, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder, User } from "discord.js";
 import noblox from "noblox.js";
-import { CommandInteraction, SlashCommandBuilder, GuildMember, EmbedBuilder, ChatInputCommandInteraction, User, ChannelType, CategoryChannel, PermissionFlagsBits } from "discord.js";
-import { getPermissionFromDiscordID, getUserFromDiscordID, insertUser } from "../api/db_api";
-import { permissions_list } from "../config";
-import { getBarDatabaseDataFromUsername } from "../api/sheet_api";
-import { createErrorEmbed, getPermissionString } from "../helper/format";
-import { isUserInGroup } from "../api/roblox";
-import { client } from "../client";
-import { createCategoryNextTo, removeCategory } from "../api/trello_api";
-import { register } from "module";
+
+import { DatabaseClient } from "../api/db/client";
+import { UsersRepository } from "../api/db/repos/users";
+import { client } from "../api/discord/client";
+import { assign_registered_role, fetch_guild_member_and_nickname, is_verified } from "../api/discord/guild";
+import { build_embed, create_error_embed, debug_embed } from "../api/discord/visual";
+import { compute_permissions, get_permission_string, permissions_list } from "../api/permissions";
+import { create_list_next_to, remove_list } from "../api/trello/list";
+
+import { AWAITING_ARCHIVING_COUNTY_LIST_ID, COUNTY_COURT_BOARD_ID, COURTS_SERVER_ID } from "../config";
+
+const db = new DatabaseClient();
+const users_repo = new UsersRepository(db);
 
 export const data = new SlashCommandBuilder()
     .setName("register")
@@ -19,281 +24,169 @@ export const data = new SlashCommandBuilder()
 	)
     .setDescription("Registers a user in the system.");
 
-const COURTS_SERVER_ID = "967957262297624597";
-const DA_GROUP_ID = 32985413;
-const COURTS_GROUP_ID = 32305960;
-const MAIN_GROUP_ID = 15665829;
-
-interface RegisterData {
+type RegisterData = {
 	old_perms?: number,
 	new_perms?: number,
 	username?: string,
 	discord_id?: string,
 }
 
-export async function register_user(interaction: ChatInputCommandInteraction, targetUser: User | null): Promise<RegisterData> {
-	// Ensure this is being run inside of a discord server.
-	// TODO: Do a check to make sure this is being done in cop discords.
-	let member = interaction.member;
-	if (!member || !interaction.inGuild() || interaction.guild?.id != COURTS_SERVER_ID) {
-		interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "You are not running this inside of a discord server. Please ensure that you do so to get the necessary permissions.")] });
+export async function register_user_in_db(interaction: ChatInputCommandInteraction, target_user: User | null): Promise<RegisterData> {
+	// TODO: Do a check to make sure this is being done in cop discords as well.
+	
+	// Confirm that the individual is in the courts server.
+	if (!interaction.inGuild() || interaction.guild?.id !== COURTS_SERVER_ID) {
+		interaction.editReply({ embeds: [create_error_embed("Registration Error", "You must run this inside the court server.")] });
 		return { new_perms: -1 };
 	}
 
-	// Get the user being updated in this interaction.
-	let user_to_update;
-	if (targetUser && targetUser != interaction.user) {
-		let runner_discord_id = interaction.user.id;
-		let permission;
-		try {
-			permission = await getPermissionFromDiscordID(runner_discord_id);
-		} catch (error) {
-			interaction.editReply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
+	// Get the user to register 
+	let user_to_register: User;
+	if (target_user && target_user.id !== interaction.user.id) {
+		const permission = (await users_repo.get_by_id(interaction.user.id))?.permission;
+		if (!permission) {
+			interaction.editReply({ embeds: [create_error_embed("Registration Error", "Unable to retrieve the permission from the Users Repository.")] });
 			return { new_perms: -1 };
 		}
 
-		if ((permission & permissions_list.JUDGE_PLUS) > 0) {
-			user_to_update = targetUser;
+		let debug = debug_embed(permission.toString(2));
+		if (((permission as number) & permissions_list.JUDGE_PLUS) === 0) {
+			interaction.editReply({ embeds: [create_error_embed("Registration Error", "You need County Judge+ permissions."), debug] });
+			return { new_perms: -1 };
+		}
+
+		user_to_register = target_user;
+	} else {
+		user_to_register = interaction.user;
+	}
+
+	const { member, nickname } = await fetch_guild_member_and_nickname(interaction, user_to_register);
+
+	// Confirm that the user is already verified (this is how the roblox nickname is retrieved)
+	if (!is_verified(member)) {
+		if (nickname !== interaction.user.displayName) {
+			interaction.editReply({ embeds: [create_error_embed("Registration Error", `Please verify ${nickname} with rover first.`)]});
 		} else {
-			interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "You do not have the permissions necessary. You must be a County Judge or above to register someone.")] });
-			return { new_perms: -1 };
+			interaction.editReply({ embeds: [create_error_embed("Registration Error", "Please verify with rover first.")] });
 		}
+    	return { new_perms: -1 };
+	}
+
+	// Get the roblox id
+	const roblox_id = await noblox.getIdFromUsername(nickname).catch(err => {
+		interaction.editReply({ embeds: [create_error_embed("Bot Error", `${err}`)] });
+		return -1;
+	});
+	if (roblox_id === -1) return { new_perms: -1 };
+
+	const new_perms = await compute_permissions(roblox_id, nickname);
+	const db_user = await users_repo.get_by_id(member.id);
+
+	let embed: EmbedBuilder;
+	if (db_user) {
+		let description = `<@${member.id}> has been updated:\n`;
+		if (db_user.discord_id !== member.id) description += `- **Discord ID:** ${member.id}\n`;
+		if (Number(db_user.roblox_id) !== roblox_id) description += `- **Roblox ID:** ${roblox_id}\n`;
+		if (db_user.permission !== new_perms) description += get_permission_string(new_perms);
+
+		if (description === `<@${member.id}> has been updated:\n`) description = "Already up to date!";
+
+		embed = build_embed("Registration Updated!", description);
 	} else {
-		user_to_update = interaction.user;
+		const description = `<@${member.id}> has been added to the database:\n- **Discord ID:** ${member.id}\n- **Roblox ID:** ${roblox_id}\n${get_permission_string(new_perms)}`;
+		embed = build_embed("Registration Successful!", description);
 	}
 
-	// Get the discord nickname.
-	let discord_id = user_to_update.id;
-	let discord_nickname;
-	if (user_to_update instanceof GuildMember) {
-    	discord_nickname = user_to_update.nickname ?? user_to_update.displayName;
-  	} else {
-    	user_to_update = await interaction.guild!.members.fetch(discord_id);
-    	discord_nickname = user_to_update.nickname ?? user_to_update.displayName;
-  	}
+	await users_repo.upsert({ discord_id: member.id, roblox_id: String(roblox_id), permission: new_perms });
+	await assign_registered_role(member);
 
-	// Ensure that the user has verified before running this command.
-	const roleNames = user_to_update.roles.cache.map(r => r.name);
-	if (!roleNames.includes("Verified")) {
-		interaction.editReply({ embeds: [createErrorEmbed("Registration Error", "Please verify with RoVer or the Harrison County Main Bot first.")] });
-		return { new_perms: -1 };
-	}
+	await interaction.editReply({ embeds: [embed] });
 
-	// Now, get the roblox ID using the API.
-	let roblox_id;
-	try {
-		roblox_id = await noblox.getIdFromUsername(discord_nickname);
-	} catch (error) {
-		interaction.editReply({ embeds: [createErrorEmbed("Bot Error", `Please message <@344666620419112963> with this error:\n ${error}`)] });
-		return { new_perms: -1 };
-	}
-	
-	// Determine the permissions based on the roles of the user and positions in groups.
-	let permission = 0;
-	
-	// Use the role in the discord to determine if they are a resident.
-	if (await isUserInGroup(roblox_id, MAIN_GROUP_ID, "Resident")) {
-		permission = permission | permissions_list.RESIDENT;
-	}
-
-	let bar_data = await getBarDatabaseDataFromUsername(discord_nickname);
-	if (bar_data) {
-		if (bar_data.status == "Active") {
-			permission = permission | permissions_list.ATTORNEY;
-		}
-	}
-
-	if (await isUserInGroup(roblox_id, DA_GROUP_ID, "Assistant District Attorney")
-			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Senior Assistant District Attorney")
-			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Chief Assistant District Attorney")
-			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "Deputy District Attorney")
-			|| await isUserInGroup(roblox_id, DA_GROUP_ID, "District Attorney")) {
-		permission = permission | permissions_list.PROSECUTOR;
-	}
-
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Justice of the Peace")
-			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "County Judge")) {
-		permission = permission | permissions_list.COUNTY_JUDGE;
-	}
-
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Deputy Clerk")) {
-		permission = permission | permissions_list.DEPUTY_CLERK;
-	}
-
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Circuit Judge")
-			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge")) {
-		permission = permission | permissions_list.CIRCUIT_JUDGE;
-	}
-
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Clerk")) {
-		permission = permission | permissions_list.CHIEF_CLERK;
-	}
-
-	if (await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Chief Judge") 
-			|| await isUserInGroup(roblox_id, COURTS_GROUP_ID, "Administrative Judge")		
-			|| roblox_id == 370917506) {
-		permission = permission | permissions_list.ADMINISTRATOR;
-	}
-
-	// Check if the target user is already in the database.
-	let user = await getUserFromDiscordID(discord_id);
-	if (user) {
-		let description = `<@${discord_id}> has been updated:\n`;
-		if (user.discord_id != discord_id) {
-			description += `- **Discord ID:** ${discord_id}\n`;
-		}
-		if (user.roblox_id != roblox_id) {
-			description += `- **Roblox ID:** ${roblox_id}\n`;
-		}
-		if (user.permission != permission) {
-			description += getPermissionString(permission);
-		}
-
-		if (description ==  `<@${discord_id}> has been updated:\n`) {
-			description = "Already up to date! Thank you for checking in :)";
-		}
-
-		const embed = new EmbedBuilder()
-			.setTitle("Registration Updated!")
-			.setDescription(description)
-			.setColor("#9853b5")
-			.setTimestamp()
-
-		// Add the registered role to the member.
-		const registered_role = interaction.guild?.roles.cache.get("1140761936909320293");
-		await user_to_update.roles.add(registered_role!);
-
-		await insertUser(discord_id, roblox_id, permission);
-
-		interaction.editReply({ embeds: [embed]});
-		return {
-			new_perms: permission, 
-			old_perms: user.permission,
-			username: discord_nickname,
-			discord_id: discord_id,
-		};
-	} else {
-		const embed = new EmbedBuilder()
-			.setTitle("Registration Successful!")
-			.setDescription(`<@${discord_id}> has been added to the database:\n- **Discord ID:** ${discord_id}\n- **Roblox ID:** ${roblox_id}\n${getPermissionString(permission)}`)
-			.setColor("#9853b5")
-			.setTimestamp()
-
-		// Add the registered role to the member.
-		const registered_role = interaction.guild?.roles.cache.get("1140761936909320293");
-		await user_to_update.roles.add(registered_role!);
-
-		await insertUser(discord_id, roblox_id, permission);
-
-		interaction.editReply({ embeds: [embed]});
-		return {
-			new_perms: permission, 
-			old_perms: -1,
-			username: discord_nickname,
-			discord_id: discord_id,
-		};
-	}
+	return {
+		new_perms: new_perms,
+		old_perms: db_user?.permission ?? -1,
+		username: nickname,
+		discord_id: member.id,
+	};
 }
 
 export async function execute(interaction: CommandInteraction) {
-	// Check if a user is specified.
-	const chatInteraction = interaction as ChatInputCommandInteraction;
-	interaction.deferReply();
-	const targetUser = chatInteraction.options.getUser("user", false);
+	const chat_interaction = interaction as ChatInputCommandInteraction;
+	await interaction.deferReply();
 
-	let register_data: RegisterData = await register_user(chatInteraction, targetUser);
-	if (register_data.new_perms == -1) return;
+	const target_user = chat_interaction.options.getUser("user", false);
+	const register_data = await register_user_in_db(chat_interaction, target_user);
+	if (register_data.new_perms === -1) return;
 
-	let guild = await client.guilds.fetch(COURTS_SERVER_ID);
+	const guild = await client.guilds.fetch(COURTS_SERVER_ID);
 	await guild.channels.fetch();
-	
-	// Someone just got judicial perms!!!
-	if (((register_data.old_perms! & permissions_list.COUNTY_JUDGE) == 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0)
-			|| (register_data.old_perms == -1 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0)) {
-		// Create the category
-		const refCategory = guild.channels.cache.find((c): c is CategoryChannel => c.name === "Duty Court" && c.type === ChannelType.GuildCategory);
+
+	// If the user became a county judge, then create a category and channel for them. Also create a trello
+	// list for their case load.
+	const became_county_judge = ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) === 0 &&
+		(register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0) ||
+		(register_data.old_perms === -1 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) > 0);
+
+	if (became_county_judge) {
+		const ref_category = guild.channels.cache.find(
+			(c): c is CategoryChannel => c.name === "Duty Court" && c.type === ChannelType.GuildCategory
+		);
+
 		const category = await guild.channels.create({
 			name: `Chambers of ${register_data.username!}`,
 			type: ChannelType.GuildCategory,
-		})
-		category.setPosition(refCategory?.position! - 1);
+			position: ref_category?.position! - 1
+		});
 
-		// Create an information channel under the category.
+		const chamber_categories = guild.channels.cache
+			.filter(
+				(c): c is CategoryChannel => 
+					c.type === ChannelType.GuildCategory && c.name.startsWith("Chambers of ")
+			)
+			.sort((a, b) => a.position - b.position);
+
+		let pos = ref_category?.position! - 1;
+		for (const cat of chamber_categories) {
+			await cat[1].setPosition(pos++);
+		}
+
 		await guild.channels.create({
 			name: "chamber-information",
 			type: ChannelType.GuildText,
 			parent: category.id,
 			permissionOverwrites: [
-				{
-					id: guild.roles.everyone.id,
-					deny: [
-						PermissionFlagsBits.AddReactions,
-						PermissionFlagsBits.AttachFiles,
-						PermissionFlagsBits.CreatePrivateThreads,
-						PermissionFlagsBits.CreatePublicThreads,
-						PermissionFlagsBits.SendMessages
-					],
-					allow: [
-						PermissionFlagsBits.ViewChannel
-					]
-				},
-				{
-					id: guild.roles.cache.find(role => role.name == "Deputy Clerk")!.id,
-					allow: [
-						PermissionFlagsBits.SendMessages
-					]
-				},
-				{
-					id: guild.roles.cache.find(role => role.name == "Chief Clerk")!.id,
-					allow: [
-						PermissionFlagsBits.SendMessages
-					]
-				},
-				{
-                    id: interaction.guild!.roles.cache.find(role => role.name == "Chief Judge")!.id,
-                    allow: [
-                        PermissionFlagsBits.SendMessages
-                    ]
-                },
-				{
-					id: register_data.discord_id!,
-					allow: [
-						PermissionFlagsBits.SendMessages
-					]
-				}
+				{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages], allow: [PermissionFlagsBits.ViewChannel] },
+				{ id: guild.roles.cache.find(r => r.name === "Deputy Clerk")!.id, allow: [PermissionFlagsBits.SendMessages] },
+				{ id: guild.roles.cache.find(r => r.name === "Registrar")!.id, allow: [PermissionFlagsBits.SendMessages] },
+				{ id: guild.roles.cache.find(r => r.name === "Chief Judge")!.id, allow: [PermissionFlagsBits.SendMessages] },
+				{ id: register_data.discord_id!, allow: [PermissionFlagsBits.SendMessages] }
 			]
 		});
 
 		try {
-			await createCategoryNextTo(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721", "6892a37a0cf6d3d722bc6bec");
+			await create_list_next_to(`Docket of ${register_data.username!}`, COUNTY_COURT_BOARD_ID, AWAITING_ARCHIVING_COUNTY_LIST_ID);
 		} catch (error) {
-			return interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
+			return interaction.followUp({ embeds: [create_error_embed("Bot Error", `${error}`)] });
 		}
 	}
 
-	
-	// Someone lost their judicial perms :(
-	if (register_data.old_perms != -1) {
-		if ((register_data.old_perms! & permissions_list.COUNTY_JUDGE) > 0 && (register_data.new_perms! & permissions_list.COUNTY_JUDGE) == 0) {
-			const category = guild.channels.cache.find(
-				channel => channel.name == `Chambers of ${register_data.username!}` && channel.type == ChannelType.GuildCategory
-			) as CategoryChannel;
+	// If the user is losing their judge permissions, archive and remove the channels and their category. Also create a trello list for their
+	// case load.
+	if (register_data.old_perms! & permissions_list.COUNTY_JUDGE && !(register_data.new_perms! & permissions_list.COUNTY_JUDGE)) {
+		// TODO: Archive active cases and return them to awaiting assignment status.
+		const category = guild.channels.cache.find(
+			c => c.name === `Chambers of ${register_data.username!}` && c.type === ChannelType.GuildCategory
+		) as CategoryChannel;
 
-			// TODO: Handle the transfer and status of case channels here.
+		if (!category) return;
+		await category.fetch();
 
-			category.children.cache.forEach(async (channel) => {
-				await channel.delete();
-			})
+		await Promise.all(category.children.cache.map(c => c.delete()));
 
-			category?.delete();
-
-			// TODO: Handle the transfer of trello cards here.
-
-			try {
-				await removeCategory(`Docket of ${register_data.username!}`, "68929e8db5fe44776b435721");
-			} catch (error) {
-				return interaction.followUp({ embeds: [createErrorEmbed("Bot Error", `Message <@344666620419112963> with this error:\n${error}`)]});
-			}
+		try {
+			await remove_list(`Docket of ${register_data.username!}`, COUNTY_COURT_BOARD_ID);
+		} catch (error) {
+			return interaction.followUp({ embeds: [create_error_embed("Bot Error", `${error}`)] });
 		}
 	}
 }
