@@ -2,8 +2,8 @@ import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, SlashCom
 import { getPermissionFromDiscordID } from "../api/db_api";
 import { permissions_list } from "../config";
 import { botErrorEditReply } from "../helper/format";
-import { executeForm } from "../helper/form";
-import { createCivilFilingForm, processCivilFilingForm } from "../forms/civil_filing_form";
+import { executeForm } from "../form/form";
+import { createCivilFilingForm, processCivilFilingForm } from "../form/civil_filing_form";
 
 export const data = new SlashCommandBuilder()
     .setName("filecase")

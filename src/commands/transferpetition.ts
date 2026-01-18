@@ -2,8 +2,8 @@ import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.j
 import { botErrorEditReply, createErrorEmbed } from "../helper/format";
 import { getRobloxIDFromDiscordID } from "../api/db_api";
 import noblox from "noblox.js";
-import { createTransferPetitionForm, processTransferPetitionForm } from "../forms/transfer_petition_form";
-import { executeForm } from "../helper/form";
+import { createTransferPetitionForm, processTransferPetitionForm } from "../form/forms/transfer_petition_form";
+import { executeForm } from "../form/form";
 
 export const data = new SlashCommandBuilder()
     .setName("transferpetition")

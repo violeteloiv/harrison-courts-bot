@@ -1,6 +1,6 @@
 import { Attachment, EmbedBuilder, Message } from "discord.js";
-import { Form } from "../helper/form";
-import { createErrorEmbed, formatDateUTC, generateFilingID, getCodeFromCaseType, longMonthDayYearFormat } from "../helper/format";
+import { Form } from "../form";
+import { createErrorEmbed, formatDateUTC, generateFilingID, getCodeFromCaseType, longMonthDayYearFormat } from "../../helper/format";
 import { copyCaseCardFromTemplate, getTrelloDueDate, updateTrelloCard } from "../api/trello_api";
 import { uploadAndStorePDF } from "../api/doc_api";
 import { getCurrentCaseCodes, getFilingByID, insertCase, insertFiling, updateSpecificCaseCode } from "../api/db_api";

@@ -1,12 +1,6 @@
 import { EmbedBuilder, Message } from "discord.js";
-import { Answer, Form } from "../helper/form";
-import { capitalizeEachWord, createErrorEmbed, formatDateUTC, getCodeFromCaseType } from "../helper/format";
+import { Answer, Form } from "../form";
 import noblox from "noblox.js";
-import { permissions_list } from "../config";
-import { create_and_store_noa } from "../api/google/documents";
-import { copy_and_store, upload_and_store } from "../api/google/doc";
-import { copy_case_card } from "../api/trello/service";
-import { update_card } from "../api/trello/card";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -14,7 +8,7 @@ export interface CivilCaseInfo {
     message: Message,
 }
 
-export function createCivilFilingForm(): Form {
+export function create_civil_filing_form(): Form {
     let form: Form = { questions: [] };
 
     form.questions.push({

@@ -4,6 +4,7 @@ import { CaseCodesRepository } from "../api/db/repos/case_codes";
 import { CommandInteraction, ModalSubmitInteraction } from "discord.js";
 import { FilingRepository } from "../api/db/repos/filings";
 import { create_error_embed } from "../api/discord/visual";
+import { format_data_utc } from "../api/file";
 
 export async function getCodeFromCaseType(case_type: string): Promise<string> {
     let ret = "";
@@ -50,16 +51,6 @@ export function generateFilingID(): string {
     return "F-" + generator({ chars: 'base32' }).generate(14);
 }
 
-export function formatDateUTC(date: Date): string {
-    const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(date.getUTCDate()).padStart(2, "0");
-    const yy = String(date.getUTCFullYear()).slice(-2);
-    const hh = String(date.getUTCHours()).padStart(2, "0");
-    const min = String(date.getUTCMinutes()).padStart(2, "0");
-
-    return `${mm}/${dd}/${yy} ${hh}:${min} UTC`;
-}
-
 export function longMonthDayYearFormat(date: Date): string {
     return `${date.toLocaleString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`;
 }
@@ -100,7 +91,7 @@ export function updateFilingRecord(desc: string, doc_types: string[], doc_links:
 
     let new_desc = desc;
     for (let i = 0; i < doc_types.length; i++) {
-        new_desc += `${formatDateUTC(new Date())} | [${doc_types[i]}](${doc_links[i]}) - Filed By: ${filed_by}\n`;
+        new_desc += `${format_data_utc(new Date())} | [${doc_types[i]}](${doc_links[i]}) - Filed By: ${filed_by}\n`;
     }
 
     return new_desc;
