@@ -1,14 +1,16 @@
-import { ChatInputCommandInteraction, CommandInteraction, Message, SlashCommandBuilder, TextBasedChannel, TextChannel } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, Message, SlashCommandBuilder, TextChannel } from "discord.js";
+
 import { DatabaseClient } from "../api/db/client";
 import { User, UsersRepository } from "../api/db/repos/users";
-import { build_embed, create_error_embed, debug_embed } from "../api/discord/visual";
-import { permissions_list } from "../api/permissions";
-import { user_has_rank } from "../api/roblox";
-import { B1_COURT_BOARD_ID, B1_EXECUTIVE_OATH_LIST_ID, B1_JUDICIAL_OATH_LIST_ID, B1_LEGISLATIVE_OATH_LIST_ID, COURTS_GROUP_ID, OATH_FOLDER_ID } from "../config";
+import { build_embed, create_error_embed } from "../api/discord/visual";
 import { buffer_to_stream, download_image, format_data_utc } from "../api/file";
 import { upload_stream_to_drive } from "../api/google/drive";
+import { permissions_list } from "../api/permissions";
+import { user_has_rank } from "../api/roblox";
 import { create_card } from "../api/trello/card";
 import { trello_fetch } from "../api/trello/client";
+
+import { B1_EXECUTIVE_OATH_LIST_ID, B1_JUDICIAL_OATH_LIST_ID, B1_LEGISLATIVE_OATH_LIST_ID, COURTS_GROUP_ID, OATH_FOLDER_ID } from "../config";
 
 const db = new DatabaseClient();
 const users_repo = new UsersRepository(db);
@@ -62,6 +64,19 @@ export async function execute(interaction: CommandInteraction) {
         max_photos = 2;
     }
 
+     // Create the card storing this information in the basement.
+    let list_id;
+    if (oath_taker_position.toLowerCase() === "sheriff" || oath_taker_position.toLowerCase() === "peace officer")
+        list_id = B1_EXECUTIVE_OATH_LIST_ID;
+    else if (oath_taker_position.toLowerCase() === "district attorney" || oath_taker_position.toLowerCase() === "chief judge" || oath_taker_position.toLowerCase() === "county judge"
+    || oath_taker_position.toLowerCase() === "justice of the peace" || oath_taker_position.toLowerCase() === "circuit judge" || oath_taker_position.toLowerCase() === "registrar")
+        list_id = B1_JUDICIAL_OATH_LIST_ID;
+    else if (oath_taker_position.toLowerCase() === "councilor")
+        list_id = B1_LEGISLATIVE_OATH_LIST_ID;
+
+    if (!list_id)
+        return await interaction.followUp({ embeds: [create_error_embed("Invalid Input", `Ensure the position '${oath_taker_position}' requires an oath. If so, contact <@344666620419112963>`)] });
+
     // Retrieve the screenshots from the attachments.
     const prompt: Message = await interaction.editReply({ embeds: [ build_embed("Next Steps", `Reply to this message with attachments of at most ${max_photos} photos representing the oaths.`) ] });
     const channel = prompt.channel as TextChannel;
@@ -108,24 +123,10 @@ export async function execute(interaction: CommandInteraction) {
         }
 
         if (reason == "done" || reason == "limit") {
-            // Create the card storing this information in the basement.
-            let list_id;
-            if (oath_taker_position.toLowerCase() === "sheriff" || oath_taker_position.toLowerCase() === "peace officer")
-                list_id = B1_EXECUTIVE_OATH_LIST_ID;
-            else if (oath_taker_position.toLowerCase() === "district attorney" || oath_taker_position.toLowerCase() === "chief judge" || oath_taker_position.toLowerCase() === "county judge"
-            || oath_taker_position.toLowerCase() === "justice of the peace" || oath_taker_position.toLowerCase() === "circuit judge" || oath_giver_position.toLowerCase() === "registrar")
-                list_id = B1_JUDICIAL_OATH_LIST_ID;
-            else if (oath_taker_position.toLowerCase() === "councilor")
-                list_id = B1_LEGISLATIVE_OATH_LIST_ID;
-            
-            if (!list_id)
-                return await interaction.followUp({ embeds: [create_error_embed("Invalid Input", "Ensure the user's role requires an oath. If so, contact <@344666620419112963>")] });
-
             let desc = `**Oath Giver:** ${oath_giver_position} ${oath_giver_user}\n`
                 + `**Oath Taker:** ${oath_taker_position} ${oath_taker_username}\n`
                 + `**Date:** ${format_data_utc(new Date())}\n`;
 
-            console.log(list_id);
             let card = await create_card(list_id!, {
                 name: `${oath_taker_username}'s Oath as ${oath_taker_position}`,
                 desc: desc,
