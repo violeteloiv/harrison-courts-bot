@@ -1,0 +1,15 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "plugin": ["typedoc-plugin-markdown"],
+
+  "mergeReadme": true,
+  "readme": "none",
+
+  "hideBreadcrumbs": true,
+  "hidePageHeader": true,
+  "disableSources": true,
+
+  "categorizeByGroup": false,
+  "entryFileName": "README.md"
+}

@@ -21,8 +21,8 @@ export type Case = {
     card_link: string;
     channel: string;
     status: string;
-    created_at: Date;
-    updated_at: Date;
+    created_at?: Date;
+    updated_at?: Date;
 
     parties?: { user_id: string; role: CaseRole }[];
     filings?: { filing_id: string }[];

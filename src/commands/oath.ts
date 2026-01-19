@@ -3,14 +3,14 @@ import { ChatInputCommandInteraction, CommandInteraction, Message, SlashCommandB
 import { DatabaseClient } from "../api/db/client";
 import { User, UsersRepository } from "../api/db/repos/users";
 import { build_embed, create_error_embed } from "../api/discord/visual";
-import { buffer_to_stream, download_image, format_data_utc } from "../api/file";
+import { buffer_to_stream, download_image, format_date_utc } from "../api/file";
 import { upload_stream_to_drive } from "../api/google/drive";
 import { permissions_list } from "../api/permissions";
 import { user_has_rank } from "../api/roblox";
 import { create_card } from "../api/trello/card";
 import { trello_fetch } from "../api/trello/client";
 
-import { B1_EXECUTIVE_OATH_LIST_ID, B1_JUDICIAL_OATH_LIST_ID, B1_LEGISLATIVE_OATH_LIST_ID, COURTS_GROUP_ID, OATH_FOLDER_ID } from "../config";
+import { B1_EXECUTIVE_OATH_LIST_ID, B1_JUDICIAL_OATH_LIST_ID, B1_LEGISLATIVE_OATH_LIST_ID, B1_SORTING_OATH_LIST_ID, COURTS_GROUP_ID, OATH_FOLDER_ID } from "../config";
 
 const db = new DatabaseClient();
 const users_repo = new UsersRepository(db);
@@ -47,10 +47,10 @@ export async function execute(interaction: CommandInteraction) {
         return interaction.editReply({ embeds: [ create_error_embed("Bot Error", "You are not a Judge in the group.") ] });
     let oath_giver_position: string;
     if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "Chief Judge")) oath_giver_position = "Chief Judge";
-    if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "Administrative Judge")) oath_giver_position = "Administrative Judge";
-    if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "Circuit Judge")) oath_giver_position = "Circuit Judge";
-    if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "County Judge")) oath_giver_position = "County Judge";
-    oath_giver_position = "Authorized Position";
+    else if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "Administrative Judge")) oath_giver_position = "Administrative Judge";
+    else if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "Circuit Judge")) oath_giver_position = "Circuit Judge";
+    else if (await user_has_rank(Number(user.roblox_id), COURTS_GROUP_ID, "County Judge")) oath_giver_position = "County Judge";
+    else oath_giver_position = "Administrator";
 
     // Oath Taker Information
     const oath_taker_username: string = chat_interaction.options.getString("username")!;
@@ -66,16 +66,16 @@ export async function execute(interaction: CommandInteraction) {
 
      // Create the card storing this information in the basement.
     let list_id;
-    if (oath_taker_position.toLowerCase() === "sheriff" || oath_taker_position.toLowerCase() === "peace officer")
+    if (oath_taker_position.toLowerCase() === "sheriff" || oath_taker_position.toLowerCase() === "peace officer" || oath_taker_position.toLowerCase() == "colonel" || oath_taker_position.toLowerCase() == "county executive")
         list_id = B1_EXECUTIVE_OATH_LIST_ID;
     else if (oath_taker_position.toLowerCase() === "district attorney" || oath_taker_position.toLowerCase() === "chief judge" || oath_taker_position.toLowerCase() === "county judge"
-    || oath_taker_position.toLowerCase() === "justice of the peace" || oath_taker_position.toLowerCase() === "circuit judge" || oath_taker_position.toLowerCase() === "registrar")
+    || oath_taker_position.toLowerCase() === "justice of the peace" || oath_taker_position.toLowerCase() === "circuit judge" || oath_taker_position.toLowerCase() === "registrar"
+    || oath_taker_position.toLowerCase() === "commissioner")
         list_id = B1_JUDICIAL_OATH_LIST_ID;
-    else if (oath_taker_position.toLowerCase() === "councilor")
+    else if (oath_taker_position.toLowerCase() === "councillor" || oath_taker_position.toLowerCase() === "councilor")
         list_id = B1_LEGISLATIVE_OATH_LIST_ID;
-
-    if (!list_id)
-        return await interaction.followUp({ embeds: [create_error_embed("Invalid Input", `Ensure the position '${oath_taker_position}' requires an oath. If so, contact <@344666620419112963>`)] });
+    else
+        list_id = B1_SORTING_OATH_LIST_ID;
 
     // Retrieve the screenshots from the attachments.
     const prompt: Message = await interaction.editReply({ embeds: [ build_embed("Next Steps", `Reply to this message with attachments of at most ${max_photos} photos representing the oaths.`) ] });
@@ -107,7 +107,7 @@ export async function execute(interaction: CommandInteraction) {
             const stream = buffer_to_stream(buffer);
             const extension = image_url.split(".").pop() || "jpg";
             const mime_type = `image/${extension}`;
-            const file = await upload_stream_to_drive(stream, `${oath_taker_username}'s Oath ${i} - ${format_data_utc(new Date())}`, OATH_FOLDER_ID, mime_type);
+            const file = await upload_stream_to_drive(stream, `${oath_taker_username}'s Oath ${i} - ${format_date_utc(new Date())}`, OATH_FOLDER_ID, mime_type);
             collected_images.push(file.webViewLink!);
             i++;
         }
@@ -125,7 +125,7 @@ export async function execute(interaction: CommandInteraction) {
         if (reason == "done" || reason == "limit") {
             let desc = `**Oath Giver:** ${oath_giver_position} ${oath_giver_user}\n`
                 + `**Oath Taker:** ${oath_taker_position} ${oath_taker_username}\n`
-                + `**Date:** ${format_data_utc(new Date())}\n`;
+                + `**Date:** ${format_date_utc(new Date())}\n`;
 
             let card = await create_card(list_id!, {
                 name: `${oath_taker_username}'s Oath as ${oath_taker_position}`,
@@ -140,9 +140,16 @@ export async function execute(interaction: CommandInteraction) {
                 });
             }
 
-            interaction.followUp({
-                embeds: [ build_embed("Success!", `Find [here](${card.url}) a link to the relevant trello card.`) ]
-            })
+            if (list_id === B1_SORTING_OATH_LIST_ID) {
+                interaction.followUp({
+                    embeds: [ create_error_embed("Unknown Position", `We don't know what position '${oath_taker_position}' this is, so it has been placed as 'to be sorted'. Please notify a clerk.`),
+                        build_embed("Success!", `Find [here](${card.url}) a link to the relevant trello card.`) ]
+                });
+            } else {
+                interaction.followUp({
+                    embeds: [ build_embed("Success!", `Find [here](${card.url}) a link to the relevant trello card.`) ]
+                });
+            }
         }
     });
 }

@@ -45,3 +45,16 @@ export async function apply_case_label(card_id: string, case_type: string) {
     if (!label) throw new Error(`Unknown Case Type: ${case_type}`);
     await set_card_labels(card_id, [label]);
 }
+
+/**
+ * Gets a trello due date ISO string based on the time_length one wants to set
+ * for the deadline.
+ * 
+ * @param time_length The timelength (in days) for the deadline
+ * @returns The ISO string
+ */
+export function get_trello_due_date(time_length: number): string {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() + time_length);
+    return date.toISOString();
+}

@@ -1,6 +1,18 @@
 import { client } from "./client";
 
 /**
+ * Gets the discord ID from a user's discord nickname.
+ * 
+ * @param discord_nickname The discord nickname
+ * @param guild_id The ID of the guild
+ * @returns The relevant discord ID
+ */
+export async function get_id_from_user(discord_nickname: string, guild_id: string): Promise<string> {
+    const guild = await client.guilds.fetch(guild_id);
+    return guild.members.cache.find(m => m.nickname === discord_nickname)?.id!;
+}
+
+/**
  * A function which gets the roles for a particular user based
  * on their discord nickname.
  * 

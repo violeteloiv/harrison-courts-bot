@@ -8,7 +8,7 @@ describe("UsersRepository", () => {
     });
 
     test("insert + get_by_id", async () => {
-        await repo.insert({
+        await repo.upsert({
             discord_id: "500",
             roblox_id: "200",
             permission: 100,
@@ -24,7 +24,7 @@ describe("UsersRepository", () => {
     });
 
     test("insert + update", async () => {
-        await repo.insert({
+        await repo.upsert({
             discord_id: "500",
             roblox_id: "200",
             permission: 100,
@@ -44,7 +44,7 @@ describe("UsersRepository", () => {
     });
 
     test("insert + find_one", async () => {
-        await repo.insert({
+        await repo.upsert({
             discord_id: "500",
             roblox_id: "200",
             permission: 100,
@@ -54,7 +54,7 @@ describe("UsersRepository", () => {
         const insert_one = await repo.get_by_id("500");
         expect(insert_one).not.toBeNull();
 
-        await repo.insert({
+        await repo.upsert({
             discord_id: "501",
             roblox_id: "201",
             permission: 100,
@@ -70,7 +70,7 @@ describe("UsersRepository", () => {
     });
 
     test("insert + find_all", async () => {
-        await repo.insert({
+        await repo.upsert({
             discord_id: "500",
             roblox_id: "200",
             permission: 100,
@@ -80,7 +80,7 @@ describe("UsersRepository", () => {
         const insert_one = await repo.get_by_id("500");
         expect(insert_one).not.toBeNull();
 
-        await repo.insert({
+        await repo.upsert({
             discord_id: "501",
             roblox_id: "201",
             permission: 100,

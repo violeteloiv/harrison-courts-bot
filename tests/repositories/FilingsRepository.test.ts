@@ -16,7 +16,7 @@ describe("FilingsRepository", () => {
 
     test("get_by_id populates filing associations correctly", async () => {
         // Insert user for 'filed_by'
-        await users_repo.insert({
+        await users_repo.upsert({
             discord_id: "3",
             roblox_id: "20",
             permission: 10,
@@ -24,7 +24,7 @@ describe("FilingsRepository", () => {
         });
 
         // Insert the case first to satisfy foreign key
-        await cases_repo.insert({
+        await cases_repo.upsert({
             case_code: "C-123",
             judge: "3",
             card_link: "link",
@@ -37,7 +37,7 @@ describe("FilingsRepository", () => {
         });
 
         // Insert filing with associations
-        await filings_repo.insert({
+        await filings_repo.upsert({
             filing_id: "F-456",
             case_code: "C-123",
             party: "plaintiff",

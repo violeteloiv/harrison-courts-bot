@@ -3,3 +3,4 @@
 /node_modules
 /private
 package-lock.json
+/unused_commands

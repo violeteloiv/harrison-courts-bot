@@ -12,5 +12,5 @@
     "strictNullChecks": true,
     "skipLibCheck": true
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "unused_commands/addparty.ts"]
 }

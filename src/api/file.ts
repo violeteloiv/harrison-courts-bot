@@ -7,7 +7,7 @@ import { PassThrough } from "stream";
  * @param date The date object
  * @returns A string in the proper format 
  */
-export function format_data_utc(date: Date): string {
+export function format_date_utc(date: Date): string {
     const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
     const dd = String(date.getUTCDate()).padStart(2, "0");
     const yy = String(date.getUTCFullYear()).slice(-2);
