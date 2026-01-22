@@ -1,6 +1,6 @@
 import { config } from "./config";
 import { commands } from "./commands";
-import { deployCommands } from "./deploy-commands";
+import { deploy_commands } from "./deploy-commands";
 import { client } from "./api/discord/client";
 import { db_verify_connection } from "./api/db/pool";
 import { db_run_migrations } from "./api/db/migrate";
@@ -14,12 +14,12 @@ client.once("ready", async () => {
 
     // Deploy commands.
     for (const guild of client.guilds.cache.values()) {
-        await deployCommands({ guildId: guild.id });
+        await deploy_commands({ guild_id: guild.id });
     }
 });
 
 client.on("guildCreate", async (guild) => {
-    await deployCommands({ guildId: guild.id });
+    await deploy_commands({ guild_id: guild.id });
 });
 
 client.on("interactionCreate", async (interaction) => {
