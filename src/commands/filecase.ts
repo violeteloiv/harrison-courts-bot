@@ -63,5 +63,7 @@ export async function execute(interaction: CommandInteraction) {
             { permission: user.permission, id: interaction.user.id, message: responses.message },
             responses.answers
         );
+    } else {
+        return await interaction.editReply({ embeds: [ create_error_embed("Case Submission Error", `The bot currently does not support filing cases of type ${case_type}. We apologize.`)] });
     }
 }

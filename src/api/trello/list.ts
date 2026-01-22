@@ -1,5 +1,5 @@
 import { trello_fetch } from "./client";
-import { TrelloList } from "./types";
+import { TrelloCard, TrelloList } from "./types";
 
 /**
  * Gets all the list corresponding to a particular
@@ -70,4 +70,17 @@ export async function remove_list(list_name: string, board_id: string) {
         body: JSON.stringify({ value: true }),
         headers: { "Content-Type": "application/json" },
     });
+}
+
+/**
+ * Gets a list of trello cards based on the list ID the cards are in
+ * 
+ * @param list_id The ID of the list we want cards from
+ * @returns A list of trello cards
+ */
+export async function get_cards_by_list(list_id: string): Promise<TrelloCard[]> {
+    return trello_fetch(
+        `/lists/${list_id}/cards`,
+        { method: "GET" }
+    );
 }

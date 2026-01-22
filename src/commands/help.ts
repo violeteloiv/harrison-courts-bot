@@ -34,10 +34,10 @@ export async function execute(interaction: CommandInteraction) {
         description += "- Updates you---or another user if specified---in the bot's database. It assigns you permissions based on group ranks.\n";
     } else if (choice == "case") {
         description += "**Case Commands:**\n";
-        // description += "/filecase `type: string`\n";
-        // description += "- `type` is a required parameter for specifying if this is a *civil*, *criminal*, *expungement*, *special*, *appeal*, or *admin* filing.\n";
-        // description += "- In order to run with type *criminal*, you must be a **Prosecutor**.\n";
-        // description += "- Running this command will trigger a form in your DMs which you should try to fill out to the best of your ability.\n";
+        description += "/filecase `type: string`\n";
+        description += "- `type` is a required parameter for specifying if this is a *civil*, *criminal*, *limited matter*, or *admin* filing.\n";
+        description += "- In order to run with type *criminal*, you must be a **Prosecutor**.\n";
+        description += "- Running this command will trigger a form in your DMs which you should try to fill out to the best of your ability.\n";
         // description += "/noa `case_code: string`, `party: string`\n";
         // description += "- `case_code` is a required parameter for specifying the case you are trying to give notice for.\n";
         // description += "- `party` is a required parameter for specifying which party you are appearing for.\n";
@@ -50,8 +50,8 @@ export async function execute(interaction: CommandInteraction) {
         description += "- `oath_taker_user` is a required parameter which specifies the username of the person who has taken an oath.\n"
         description += "- `oath_taker_position` is a required parameter which specifies the position of the person who has taken an oath.\n"
         description += "- Registers an oath in the system for a user. This can only be run by **Judges** or **Administrators**.\n"
-        // description += "/pendingcases\n";
-        // description += "- Will give the user a list of cases which are currently pending before the court. This can only be run by **Clerks** or above.\n";
+        description += "/pendingcases\n";
+        description += "- Will give the user a list of cases which are currently pending before the court. This can only be run by **Clerks** or above.\n";
         // description += "/assigncase `case_code: string`, `judge: User`\n";
         // description += "- `case_code` is a required parameter for specifying the case you wish to assign a judge to.\n";
         // description += "- `judge` is a required parameter for specifying the judge you wish to assign the case to.\n";

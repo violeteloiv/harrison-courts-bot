@@ -1,4 +1,4 @@
-INSERT INTO case_codes (civil, criminal, limited, admin, duty_court) VALUES (1, 1, 1, 1, 1);
+INSERT INTO case_codes (civil, criminal, limited, admin, duty_court) VALUES (0, 0, 0, 0, 0);
 
 DO $$
 BEGIN

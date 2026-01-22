@@ -7,7 +7,7 @@ import { CaseCard, Label, TrelloCard } from "./types";
  * @param card The raw card data
  * @returns The new CaseCard
  */
-function map_to_case_card(card: any): CaseCard {
+export function map_to_case_card(card: any): CaseCard {
     return {
         id: card.id,
         name: card.name,

@@ -15,6 +15,7 @@
             - [ ] api/trello/constants.ts
             - [ ] api/trello/service.ts
         - [ ] api/roblox.ts
+        - [ ] api/error.ts
     - [ ] Form
         - [ ] form/forms/civil_filing_form.ts
         - [ ] form/form/transfer_petition_form.ts
@@ -39,15 +40,12 @@
     - [ ] Register users by trying to find their username in the discord, and fall back on something else (TBD)
     - [ ] Add a five minute cooldown between running the command.
 
-- [ ] Pending Cases Command
-    - [ ] Implement a page system when there are more than a certain amount of cases.
-
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case
     - [X] Review the currently pending cases
-    - [X] Assign the case to a judge
-        - [X] Ability to reassign cases
-    - [X] Notice of Appearance
+    - [ ] Assign the case to a judge
+        - [ ] Ability to reassign cases
+    - [ ] Notice of Appearance
     - [ ] Summons system
         - [ ] Adding person to channel
         - [ ] Removing person from channel
