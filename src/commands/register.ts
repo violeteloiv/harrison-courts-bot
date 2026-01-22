@@ -141,14 +141,17 @@ export async function execute(interaction: CommandInteraction) {
 		const chamber_categories = guild.channels.cache
 			.filter(
 				(c): c is CategoryChannel => 
-					c.type === ChannelType.GuildCategory && c.name.startsWith("Chambers of ")
+					c.type === ChannelType.GuildCategory && 
+					c.name.startsWith("Chambers of ") &&
+					c.id !== category.id
 			)
 			.sort((a, b) => a.position - b.position);
 
-		let pos = ref_category?.position! - 1;
-		for (const cat of chamber_categories) {
-			await cat[1].setPosition(pos++);
+		let pos = ref_category?.position! - chamber_categories.size - 1;
+		for (const cat of chamber_categories.values()) {
+			await cat.setPosition(pos++);
 		}
+		await category.setPosition(pos++);
 
 		await guild.channels.create({
 			name: "chamber-information",
