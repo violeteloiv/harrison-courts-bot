@@ -13,7 +13,7 @@ export type CaseRole = "plaintiff" | "defendant" | "p_counsel" | "d_counsel";
  * The data type which encompasses the data of a case.
  * 
  * @remarks Case is an "Association Repository" as the
- * parties and filings are associated with other tables.
+ * parties are associated with other tables.
  */
 export type Case = {
     case_code: string;
@@ -32,7 +32,7 @@ export type Case = {
  * 
  * @remarks
  * This repository models an *associations repository*. The table has two
- * "sub-tables" called associations which correlate to the parties and filings
+ * "sub-tables" called associations which correlate to the parties
  * of the case.
  * 
  * This repository is only updated when a new case is filed into the system

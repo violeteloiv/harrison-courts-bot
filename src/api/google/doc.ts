@@ -8,6 +8,13 @@ export interface DefaultFilingData {
     doc_type: string;
 }
 
+/**
+ * Copies a document link and stores it as a PDF.
+ * 
+ * @param doc_link The document link to copy
+ * @param data The data corresponding to the file
+ * @returns A link to the new pdf
+ */
 export async function copy_and_store(
     doc_link: string, 
     data: DefaultFilingData
@@ -27,6 +34,13 @@ export async function copy_and_store(
     return uploaded.webViewLink!;
 }
 
+/**
+ * Uploads and stores a file in the google drive.
+ * 
+ * @param attachment The attachment to upload
+ * @param data The filing data related to the file
+ * @returns A link to the new file
+ */
 export async function upload_and_store(
     attachment: Attachment,
     data: DefaultFilingData
@@ -45,6 +59,11 @@ export async function upload_and_store(
     return uploaded.webViewLink!;
 }
 
+/**
+ * Deletes a list of documents.
+ * 
+ * @param links A list of links to documents
+ */
 export async function delete_docs(links: string[]) {
     const drive = await get_drive_client();
 

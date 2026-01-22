@@ -6,6 +6,11 @@ const migrations: Migration[] = [
     m001,
 ];
 
+/**
+ * Runs all of the defined migrations.
+ * 
+ * @param db The database to run the migrations on
+ */
 export async function db_run_migrations(db: DatabaseClient) {
     try {
         await db.query("BEGIN");

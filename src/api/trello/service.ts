@@ -1,6 +1,14 @@
 import { copy_card, set_card_labels } from "./card";
 import { CASE_LABELS, TEMPLATE_CARDS } from "./constants";
 
+/**
+ * Builds a case name based on the case type.
+ * 
+ * @param type The case type
+ * @param plaintiffs The list of plaintiffs
+ * @param defendants The list of defendants
+ * @returns The formatted case name
+ */
 export function build_case_name(
     type: string,
     plaintiffs: string[],
@@ -27,6 +35,15 @@ export function build_case_name(
     throw new Error(`Invalid case type: ${type}`);
 }
 
+/**
+ * Copies a case card and modifies it.
+ * 
+ * @param jurisdiction The jurisdiction of the case
+ * @param case_type The type of case
+ * @param plaintiffs The plaintiffs
+ * @param defendants The defendants
+ * @returns The data for the new card
+ */
 export async function copy_case_card(
     jurisdiction: "county" | "circuit",
     case_type: string,
@@ -40,6 +57,12 @@ export async function copy_case_card(
     return copy_card(template.card_id, template.list_id, name);
 }
 
+/**
+ * Applies case labels depending on the case type
+ * 
+ * @param card_id The id of the card
+ * @param case_type The case type
+ */
 export async function apply_case_label(card_id: string, case_type: string) {
     const label = CASE_LABELS[case_type];
     if (!label) throw new Error(`Unknown Case Type: ${case_type}`);

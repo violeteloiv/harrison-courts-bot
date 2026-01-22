@@ -2,7 +2,6 @@ import { generator } from "rand-token";
 import { DatabaseClient } from "../api/db/client";
 import { CaseCodesRepository } from "../api/db/repos/case_codes";
 import { FilingRepository } from "../api/db/repos/filings";
-import { format_date_utc } from "../api/file";
 
 /**
  * Formats the case code given a case type.

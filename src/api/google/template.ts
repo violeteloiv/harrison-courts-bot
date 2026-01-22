@@ -11,15 +11,33 @@ export interface TemplateConfig {
     replacements: TemplateReplacementMap;
 }
 
+/**
+ * Formats a party name based on its length.
+ * 
+ * @param names The names of the pary
+ * @returns The formatted string
+ */
 function format_party(names: string[]): string {
     return names.length > 1 ? `${names[0]} et al.` : names[0];
 }
 
+/**
+ * Gets today in MONTH DD, YYYY format.
+ * 
+ * @returns The date in the above format
+ */
 function today(): string {
     const now = new Date();
     return `${now.toLocaleString("default", { month: "long" })} ${now.getDate()}, ${now.getFullYear()}`;
 }
 
+/**
+ * Builds a drive file replace object.
+ * 
+ * @param find The text to find
+ * @param replace_text The text to replace
+ * @returns The drive filed replace object
+ */
 function replace(find: string, replace_text: string) {
     return {
         replaceAllText: {
@@ -32,6 +50,12 @@ function replace(find: string, replace_text: string) {
     };
 }
 
+/**
+ * A helper function to create a template document
+ * 
+ * @param config The configuration of the document
+ * @returns A link to the new file
+ */
 export async function create_template_document(
     config: TemplateConfig
 ): Promise<string> {

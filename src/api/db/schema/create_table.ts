@@ -1,13 +1,20 @@
 import { DatabaseClient } from "../client";
 import { assert_allowed_type, assert_identifier } from "../sql";
 
-
 export interface Column {
     name: string,
     type: string,
 };
 
-export async function db_create_table(db: DatabaseClient, name: string, column_data: Column[], primary_keys?: string[],) {
+/**
+ * A function which creates the table utilizing postgre sql.
+ * 
+ * @param db The database to create the table in
+ * @param name The name of the table
+ * @param column_data The column data
+ * @param primary_keys The primary keys of the table
+ */
+export async function db_create_table(db: DatabaseClient, name: string, column_data: Column[], primary_keys?: string[]) {
     assert_identifier(name);
     let sql = `CREATE TABLE IF NOT EXISTS "${name.toLowerCase()}" (`;
     column_data.forEach((column) => {
@@ -24,5 +31,5 @@ export async function db_create_table(db: DatabaseClient, name: string, column_d
     
     sql = sql.replace(/,$/,"");
     sql += ');';
-    return await db.query(sql);
+    await db.query(sql);
 }

@@ -1,33 +1,11 @@
-- [ ] Documentation
-    - [ ] API
-        - [ ] Database
-            - [ ] api/db/repos/filing.ts
-            - [ ] api/db/schema/create_table.ts
-            - [ ] api/db/migrate.ts
-            - [ ] api/db/migration.ts
-            - [ ] api/db/pool.ts
-            - [ ] api/db/sql.ts
-        - [ ] Google
-            - [ ] api/google/doc.ts
-            - [ ] api/google/template.ts
-        - [ ] Trello
-            - [ ] api/trello/client.ts
-            - [ ] api/trello/constants.ts
-            - [ ] api/trello/service.ts
-        - [ ] api/roblox.ts
-        - [ ] api/error.ts
-    - [ ] Form
-        - [ ] form/forms/civil_filing_form.ts
-        - [ ] form/form/transfer_petition_form.ts
-    - [ ] Helper
-        - [ ] helper/format.ts
-
 - [ ] Register Command
     - [ ] When losing judge permissions:
         - [ ] Transfer all cases assigned to the judge to "PENDING".
         - [ ] Transfer all case channels to a separate category.
     - [ ] Get the specific discord server IDs for which the register command can be run.
         - [ ] Integrate Police Permissions.
+
+- [ ] Move api/trello/constants.ts to config.ts
 
 - [ ] File Case Command
     - [ ] Implement the criminal filing system.

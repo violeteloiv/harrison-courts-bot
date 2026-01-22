@@ -8,7 +8,10 @@ export const pool = new Pool({
     port: Number(process.env.POSTGRES_PORT ?? 5432),
 });
 
-export async function db_verify_connection(): Promise<void> {
+/**
+ * Verifies the connection of the database.
+ */
+export async function db_verify_connection() {
     const client = await pool.connect();
     try {
         console.log("✅ Connected to PostgreSQL database");
