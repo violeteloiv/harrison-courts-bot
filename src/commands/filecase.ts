@@ -37,7 +37,7 @@ export async function execute(interaction: CommandInteraction) {
     // Ensure the user has the required permissions to run this command.
     let user = await users_repo.get_by_id(interaction.user.id);
     if (!user)
-        return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must register with /register before runnign this command.")] });
+        return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must register with /register before running this command.")] });
     
     // Get the channel the modal was sent in.
     let channel = interaction.channel;

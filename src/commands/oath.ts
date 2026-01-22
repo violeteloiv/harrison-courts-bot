@@ -3,8 +3,8 @@ import { ChatInputCommandInteraction, CommandInteraction, Message, SlashCommandB
 import { DatabaseClient } from "../api/db/client";
 import { User, UsersRepository } from "../api/db/repos/users";
 import { build_embed, create_error_embed } from "../api/discord/visual";
-import { buffer_to_stream, download_image, format_date_utc } from "../api/file";
-import { upload_stream_to_drive } from "../api/google/drive";
+import { buffer_to_stream, download_file, format_date_utc } from "../api/file";
+import { get_drive_client, make_public, upload_stream_to_drive } from "../api/google/drive";
 import { permissions_list } from "../api/permissions";
 import { user_has_rank } from "../api/roblox";
 import { create_card } from "../api/trello/card";
@@ -78,7 +78,7 @@ export async function execute(interaction: CommandInteraction) {
         list_id = B1_SORTING_OATH_LIST_ID;
 
     // Retrieve the screenshots from the attachments.
-    const prompt: Message = await interaction.editReply({ embeds: [ build_embed("Next Steps", `Reply to this message with attachments of at most ${max_photos} photos representing the oaths.`) ] });
+    const prompt: Message = await interaction.editReply({ embeds: [ build_embed("Next Steps", `Reply to this message with attachments of at most ${max_photos} photos or pdfs representing or affirming the oaths.`) ] });
     const channel = prompt.channel as TextChannel;
     const collector = channel.createMessageCollector({
         filter: (m: Message) =>
@@ -86,30 +86,44 @@ export async function execute(interaction: CommandInteraction) {
         time: 5 * 60_000,
     });
 
-    let collected_images: string[] = [];
+    let collected_files: string[] = [];
 
     collector.on("collect", async (reply) => {
         const images = reply.attachments.filter(att =>
             att.contentType?.startsWith("image/")
         );
+        const pdfs = reply.attachments.filter(att =>
+            att.name?.toLowerCase().endsWith(".pdf")
+        );
 
         if (!images.size) {
+            // Upload PDFS
+            for (const pdf_url of pdfs.map(pdf => pdf.url)) {
+                const buffer = await download_file(pdf_url);
+                const stream = buffer_to_stream(buffer);
+                const mime_type = "application/pdf";
+                const file = await upload_stream_to_drive(stream, `${oath_taker_username}'s Oath - ${format_date_utc(new Date())}`, OATH_FOLDER_ID, mime_type);
+                await make_public(await get_drive_client(), file.id!);
+                collected_files.push(file.webViewLink!);
+            }
+        } else if (!pdfs.size) {
+            // Upload Images
+            let i = 1;
+            for (const image_url of images.map(img => img.url)) {
+                const buffer = await download_file(image_url);
+                const stream = buffer_to_stream(buffer);
+                const extension = image_url.split(".").pop() || "jpg";
+                const mime_type = `image/${extension}`;
+                const file = await upload_stream_to_drive(stream, `${oath_taker_username}'s Oath ${i} - ${format_date_utc(new Date())}`, OATH_FOLDER_ID, mime_type);
+                await make_public(await get_drive_client(), file.id!);
+                collected_files.push(file.webViewLink!);
+                i++;
+            }
+        } else {
             await interaction.followUp({
-                embeds: [ create_error_embed("Invalid", "Reply must have Image Attachments.") ]
+                embeds: [ create_error_embed("Invalid", "Reply must have Image Attachments or PDF Attachments.") ]
             });
             return;
-        }
-
-        // Store collected images on the google drive in an oaths folder for safe-keeping.
-        let i = 1;
-        for (const image_url of images.map(img => img.url)) {
-            const buffer = await download_image(image_url);
-            const stream = buffer_to_stream(buffer);
-            const extension = image_url.split(".").pop() || "jpg";
-            const mime_type = `image/${extension}`;
-            const file = await upload_stream_to_drive(stream, `${oath_taker_username}'s Oath ${i} - ${format_date_utc(new Date())}`, OATH_FOLDER_ID, mime_type);
-            collected_images.push(file.webViewLink!);
-            i++;
         }
 
         collector.stop("done");
@@ -131,10 +145,10 @@ export async function execute(interaction: CommandInteraction) {
                 name: `${oath_taker_username}'s Oath as ${oath_taker_position}`,
                 desc: desc,
             });
-
-            for (const image_url of collected_images) {
+            
+            for (const file_url of collected_files) {
                 const params = new URLSearchParams();
-                params.append("url", image_url);
+                params.append("url", file_url);
                 await trello_fetch(`/cards/${card.id}/attachments?${params.toString()}`, {
                     method: "POST"
                 });

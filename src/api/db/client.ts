@@ -30,9 +30,37 @@ export class DatabaseClient {
         return this._pool.query<T>(sql, params);
     }
 
+    /**
+     * Submits a query to the database from a file.
+     * 
+     * @param file_path The file path of the sql.
+     */
     async file_query(file_path: string): Promise<void> {
         const absolute_path = path.resolve(file_path);
         const sql = await fs.readFile(absolute_path, "utf-8");
         await this._pool.query(sql);
+    }
+
+    /**
+     * Runs multiple queries inside a single transaction. Rolls back
+     * if any query fails.
+     * 
+     * @param fn The function to execute
+     * @returns The result of the transaction.
+     */
+    async transaction<T>(fn: (tx: DatabaseClient) => Promise<T>): Promise<T> {
+        const client = await this._pool.connect();
+        try {
+            await client.query("BEGIN");
+            const tx_client = new DatabaseClient({ query: client.query.bind(client) } as any);
+            const result = await fn(tx_client);
+            await client.query("COMMIT");
+            return result;
+        } catch (err) {
+            await client.query("ROLLBACK");
+            throw err;
+        } finally {
+            client.release();
+        }
     }
 }

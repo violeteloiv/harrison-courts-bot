@@ -79,8 +79,26 @@ export async function copy_card(
  * @param card The new data
  */
 export async function update_card(card: CaseCard) {
+    const params = new URLSearchParams();
+
+    if (card.name) {
+        params.append("name", card.name);
+    }
+
+    if (card.description) {
+        params.append("desc", card.description);
+    }
+
+    if (card.deadline) {
+        params.append("due", card.deadline);
+    }
+
+    if (card.labels && card.labels.length > 0) {
+        params.append("idLabels", card.labels.map(l => l.id).join(","));
+    }
+
     await trello_fetch(
-        `/cards/${card.id}&name=${card.name}&desc=${card.description}&due=${card.deadline}`,
+        `/cards/${card.id}?${params.toString()}`,
         { method: "PUT" }
     );
 }

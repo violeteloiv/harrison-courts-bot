@@ -95,11 +95,22 @@ export abstract class Repository<T extends QueryResultRow> {
      * 
      * @param item The object to upsert into the repository
      */
-    async upsert(item: T) {
+    async upsert(item: T, tx?: DatabaseClient) {
+        const db_client = tx ?? this.db;
+
+        // Wrap in a transaction is not already in one.
+        if (!tx) {
+            await this.db.transaction(async (inner_tx) => {
+                await this.upsert(item, inner_tx);
+            });
+            return;
+        }
+
+        // Prepare parent row keys and values
         const keys = Object.keys(item).filter(
             k => !this.associations.some(a => a.field_name === k)
         );
-        
+
         const values = keys.map(k => {
             const val = item[k as keyof T];
             if (val === "" || val === undefined) return null;
@@ -114,7 +125,6 @@ export abstract class Repository<T extends QueryResultRow> {
             .map((k, i) => `${k} = EXCLUDED.${k}`)
             .join(", ");
 
-
         const sql = `
             INSERT INTO ${this.table} (${keys.join(", ")})
             VALUES (${placeholders})
@@ -123,15 +133,17 @@ export abstract class Repository<T extends QueryResultRow> {
             RETURNING *;
         `;
 
-        await this.db.query(sql, values);
-
+        const parent_result = await db_client.query<T>(sql, values);
+        const parent_row = parent_result.rows[0];
+        const parent_id = parent_row[this.primary_key];
+    
         for (const assoc of this.associations) {
-            const child_items = item[assoc.field_name] as any[];
-            if (!child_items || child_items.length === 0) continue;
-
+            const child_items = item[assoc.field_name] as any[] ?? [];
             for (const child of child_items) {
+                child[assoc.foreign_key] = parent_id;
+
                 if (assoc.repo) {
-                    await assoc.repo.upsert(child);
+                    await assoc.repo.upsert(child, db_client);
                 } else {
                     const columns = [assoc.foreign_key, ...assoc.columns];
                     const child_values = [item[this.primary_key], ...assoc.columns.map(c => child[c])];
@@ -139,8 +151,9 @@ export abstract class Repository<T extends QueryResultRow> {
                     const child_sql = `
                         INSERT INTO ${assoc.table} (${columns.join(", ")}) 
                         VALUES (${child_placeholders})
+                        ON CONFLICT DO NOTHING;
                     `;
-                    await this.db.query(child_sql, child_values);
+                    await db_client.query(child_sql, child_values);
                 }
             }
         }

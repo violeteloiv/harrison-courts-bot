@@ -25,7 +25,6 @@ export type Case = {
     updated_at?: Date;
 
     parties?: { user_id: string; role: CaseRole }[];
-    filings?: { filing_id: string }[];
 }
 
 /**
@@ -66,12 +65,6 @@ export class CasesRepository extends Repository<Case> {
                 foreign_key: "case_code",
                 columns: ["user_id", "role"],
                 field_name: "parties",
-            },
-            {
-                table: "filings",
-                foreign_key: "case_code",
-                columns: ["filing_id"],
-                field_name: "filings",
             }
         ];
     }

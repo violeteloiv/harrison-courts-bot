@@ -18,12 +18,12 @@ export function format_date_utc(date: Date): string {
 }
 
 /**
- * Downloads an image file and gets the data in a buffer.
+ * Downloads a file and gets the data in a buffer.
  * 
- * @param url The url of the image
- * @returns The buffer of image data
+ * @param url The url of the file
+ * @returns The buffer of file data
  */
-export async function download_image(url: string): Promise<Buffer<any>> {
+export async function download_file(url: string): Promise<Buffer<any>> {
     const response = await axios.get(url, { responseType: "arraybuffer" });
     return Buffer.from(response.data);
 }

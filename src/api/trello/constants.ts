@@ -5,7 +5,7 @@ export const BOARDS = {
 
 export const TEMPLATE_CARDS = {
     county: {
-        list_id: "6892a359ff10f18c8b09242d",
+        list_id: "696ec3bd4493ff7eb2db5d97",
         card_id: "68944e50232e7a5cd1f726e0",
     },
     circuit: {

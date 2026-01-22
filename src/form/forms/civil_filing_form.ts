@@ -9,7 +9,7 @@ import { UsersRepository } from "../../api/db/repos/users";
 import { create_error_embed } from "../../api/discord/visual";
 import { copy_and_store } from "../../api/google/doc";
 import { create_and_store_noa } from "../../api/google/documents";
-import { format_date_utc } from "../../api/file";
+import { buffer_to_stream, download_file, format_date_utc } from "../../api/file";
 import { permissions_list } from "../../api/permissions";
 import { update_card } from "../../api/trello/card";
 import { copy_case_card, get_trello_due_date } from "../../api/trello/service";
@@ -19,7 +19,8 @@ import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id } f
 import { get_id_from_user } from "../../api/discord/user";
 
 import { COURTS_SERVER_ID } from "../../config";
-import { get_drive_client, upload_pdf } from "../../api/google/drive";
+import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
+import { format_error_info } from "../../api/error";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -161,10 +162,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
         });
         defendants.forEach(async (defendant) => {
             let id = await get_id_from_user(defendant, COURTS_SERVER_ID);
-            if (!id)
-                parties.push({ user_id: "-1", role: "defendant" });
-            else
-                parties.push({ user_id: await get_id_from_user(defendant, COURTS_SERVER_ID), role: "defendant" as CaseRole });
+            if (id) parties.push({ user_id: await get_id_from_user(defendant, COURTS_SERVER_ID), role: "defendant" as CaseRole });
         });
 
         // Add an NOA to the filing if they are an attorney.
@@ -200,7 +198,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
                     embed.setDescription(`Uploading your ${doc_type}...`);
                     info.message.edit({ embeds: [embed] });
 
-                    processed_docs.push({ doc_link: await copy_and_store(gdrive_docs[i], {
+                    processed_docs.push({ doc_link: await copy_and_store(gdrive_docs[i].url, {
                         case_code: case_code, doc_type: doc_type
                     })});
                     processed_doc_types.push({ type: doc_type });
@@ -211,10 +209,12 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
                     let doc_type = capitalize_each_word(doc_types[i]);
                     embed.setDescription(`Uploading your ${doc_type}...`);
                     info.message.edit({ embeds: [embed] });
-                    // TODO: Upload PDFS :D
-                    processed_docs.push({ doc_link: await copy_and_store(pdf_att[i], {
-                        case_code: case_code, doc_type: doc_type
-                    })});
+
+                    const buffer = await download_file(pdf_att[i].url);
+                    const stream = buffer_to_stream(buffer);
+                    const file = await upload_stream_to_drive(stream, `${pdf_att[i].name} - ${format_date_utc(new Date())}`, get_destination_folder(), "application/pdf");
+
+                    processed_docs.push({ doc_link: file.webViewLink! });
                     processed_doc_types.push({ type: doc_type });
                 }
             }
@@ -230,7 +230,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
         const case_card_header = `**Presiding Judge:** TBD\n**Date Assigned:** TBD\n**Docket #:** ${case_code}\n\n---\n\n**Record:**\n`;
         let new_description = case_card_header;
         for (let i = 0; i < processed_doc_types.length; i++) {
-            new_description += `${format_date_utc(new Date())} | [${processed_doc_types[i]}](${processed_docs[i]}) - Filed By: ${username}\n`
+            new_description += `${format_date_utc(new Date())} | [${processed_doc_types[i].type}](${processed_docs[i].doc_link}) - Filed By: ${username}\n`
         }
         case_card.description = new_description;
 
@@ -249,11 +249,12 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
 
         let filing_id = await get_unique_filing_id();
 
+        console.log(processed_doc_types.length);
         if (processed_doc_types.length != 0) {
+            await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties });
             await filings_repo.upsert({ filing_id: filing_id, case_code: case_code, party: "Plaintiff", filed_by: info.id,  types: processed_doc_types, documents: processed_docs });
-            await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties, filings: [{ filing_id: filing_id }] });
         } else {
-            await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties, filings: [] });
+            await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties });
         }
 
         embed.setDescription(`Information uploaded to trello! Find it [here](${case_card.url}). You're all set :)`);
@@ -261,7 +262,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
     } catch (error) {
         const embed = create_error_embed(
             "Internal Bot Error",
-            `There has been an internal bot error, please contact <@344666620419112963> with the following error message:\n${error}`
+            `There has been an internal bot error, please contact <@344666620419112963> with the following error message:\n${format_error_info(error as Error)}`
         )
         info.message.edit({ embeds: [embed] });
     }
