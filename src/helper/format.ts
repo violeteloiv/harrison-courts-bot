@@ -2,6 +2,7 @@ import { generator } from "rand-token";
 import { DatabaseClient } from "../api/db/client";
 import { CaseCodesRepository } from "../api/db/repos/case_codes";
 import { FilingRepository } from "../api/db/repos/filings";
+import { format_date_utc } from "../api/file";
 
 /**
  * Formats the case code given a case type.
@@ -77,6 +78,36 @@ export async function get_unique_filing_id(): Promise<string> {
     return filing_id;
 }
 
+/**
+ * Formats a date as MONTH DD, YYYY.
+ * 
+ * @param date The date to format 
+ * @returns The formatted date
+ */
+export function long_month_date_format(date: Date): string {
+    return `${date.toLocaleString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+/**
+ * Returns an updated description with a new filing.
+ * 
+ * @param desc The previous description
+ * @param doc_types The document types
+ * @param doc_links The document links
+ * @param filed_by Who it was filed by
+ * @returns A string with the newly formatted data
+ */
+export function update_filing_record(desc: string, doc_types: string[], doc_links: string[], filed_by: string): string {
+    if (doc_types.length != doc_links.length) throw new Error("doc_types and doc_links do not have the same length");
+
+    let new_desc = desc;
+    for (let i = 0; i < doc_types.length; i++) {
+        new_desc += `${format_date_utc(new Date())} | [${doc_types[i]}](${doc_links[i]}) - Filed By: ${filed_by}\n`;
+    }
+
+    return new_desc;
+}
+
 // export function getCaseTypeFromCaseCode(case_code: string): string {
 //     let id = case_code.slice(1, 3);
 //     if (id == "CV") return "civil";
@@ -87,19 +118,4 @@ export async function get_unique_filing_id(): Promise<string> {
 //     if (id == "AD") return "admin";
 
 //     throw new Error("Invalid case_code");
-// }
-
-// export function longMonthDayYearFormat(date: Date): string {
-//     return `${date.toLocaleString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`;
-// }
-
-// export function updateFilingRecord(desc: string, doc_types: string[], doc_links: string[], filed_by: string): string {
-//     if (doc_types.length != doc_links.length) throw new Error("doc_types and doc_links do not have the same length");
-
-//     let new_desc = desc;
-//     for (let i = 0; i < doc_types.length; i++) {
-//         new_desc += `${format_date_utc(new Date())} | [${doc_types[i]}](${doc_links[i]}) - Filed By: ${filed_by}\n`;
-//     }
-
-//     return new_desc;
 // }

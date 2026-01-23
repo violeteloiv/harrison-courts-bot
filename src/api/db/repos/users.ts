@@ -22,12 +22,12 @@ export type User = {
  * @example
  * ```TS
  * const repo = new UsersRepository(db);
- * const user = await repo.get_by_id(discord_id);
+ * const user = await repo.get_by_id(roblox_id);
  * console.log(user.permission);
  * ```
  */
 export class UsersRepository extends Repository<User> {
-    protected primary_key: keyof User = "discord_id";
+    protected primary_key: keyof User = "roblox_id";
 
     /**
      * Creates a new UsersRepository.
@@ -35,6 +35,16 @@ export class UsersRepository extends Repository<User> {
      * @param db Database client used to execute queries.
      */
     constructor(db: DatabaseClient) {
-        super(db, "users", "discord_id", []);
+        super(db, "users", "roblox_id", []);
+    }
+
+    /**
+     * Gets the user based on their discord ID!
+     * 
+     * @param discord_id The Discord ID of the user
+     * @returns The user
+     */
+    async get_by_discord_id(discord_id: string) {
+        return await this.find_one("discord_id = $1", [discord_id]);
     }
 }

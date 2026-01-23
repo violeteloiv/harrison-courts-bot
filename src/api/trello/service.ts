@@ -81,3 +81,26 @@ export function get_trello_due_date(time_length: number): string {
     date.setUTCDate(date.getUTCDate() + time_length);
     return date.toISOString();
 }
+
+/**
+ * Gets the card ID from a url or any identifier of the card
+ * 
+ * @param card_id_or_url The card ID or URL to get the ID from
+ * @returns The Card ID
+ */
+export function normalize_card_id(card_id_or_url: string): string {
+    const url = card_id_or_url.trim();
+
+    // If it already looks like a bare ID, return it
+    if (!url.includes("trello.com")) {
+        return url;
+    }
+
+    // Flexible regex: capture after /c/ until slash, question mark, or end
+    const match = url.match(/trello\.com\/c\/([^\/?#]+)/);
+    if (!match) {
+        throw new Error(`Invalid Trello card URL: ${card_id_or_url}`);
+    }
+
+    return match[1];
+}

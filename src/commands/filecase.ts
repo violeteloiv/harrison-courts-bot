@@ -35,7 +35,7 @@ export async function execute(interaction: CommandInteraction) {
     await interaction.reply({ embeds: [embed], ephemeral: true} );
 
     // Ensure the user has the required permissions to run this command.
-    let user = await users_repo.get_by_id(interaction.user.id);
+    let user = await users_repo.get_by_discord_id(interaction.user.id);
     if (!user)
         return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must register with /register before running this command.")] });
     
@@ -60,7 +60,7 @@ export async function execute(interaction: CommandInteraction) {
         let form = create_civil_filing_form();
         let responses = await execute_form(form, interaction.member as GuildMember);
         await process_civil_filing_form(
-            { permission: user.permission, id: interaction.user.id, message: responses.message },
+            { permission: user.permission, id: user.roblox_id, message: responses.message },
             responses.answers
         );
     } else {

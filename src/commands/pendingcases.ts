@@ -20,7 +20,7 @@ let users_repo = new UsersRepository(db);
 
 export async function execute(interaction: CommandInteraction) {
     // Check the permissions of the user.
-    let user = await users_repo.get_by_id(interaction.user.id);
+    let user = await users_repo.get_by_discord_id(interaction.user.id);
     if (!user) return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must register with the bot with /register first.")] });
     
     let permission = user.permission;

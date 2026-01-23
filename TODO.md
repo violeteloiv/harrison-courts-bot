@@ -21,8 +21,8 @@
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case
     - [X] Review the currently pending cases
-    - [ ] Assign the case to a judge
-        - [ ] Ability to reassign cases
+    - [X] Assign the case to a judge
+        - [X] Ability to reassign cases
     - [ ] Notice of Appearance
     - [ ] Summons system
         - [ ] Adding person to channel

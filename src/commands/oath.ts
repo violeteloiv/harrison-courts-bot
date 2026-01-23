@@ -38,7 +38,7 @@ export async function execute(interaction: CommandInteraction) {
     // Oath Giver Information
     const guild_member = await interaction.guild?.members.fetch(interaction.user.id); 
     const oath_giver_user: string = guild_member?.nickname || interaction.user.username;
-    let res: User | null = await users_repo.get_by_id(interaction.user.id);
+    let res: User | null = await users_repo.get_by_discord_id(interaction.user.id);
     if (!res) return interaction.editReply({ embeds: [ create_error_embed("Bot Error", "Please Register with the Bot using /register") ] });
     let user: User = res;
 

@@ -43,7 +43,7 @@ export async function register_user_in_db(interaction: ChatInputCommandInteracti
 	// Get the user to register 
 	let user_to_register: User;
 	if (target_user && target_user.id !== interaction.user.id) {
-		const permission = (await users_repo.get_by_id(interaction.user.id))?.permission;
+		const permission = (await users_repo.get_by_discord_id(interaction.user.id))?.permission;
 		if (!permission) {
 			interaction.editReply({ embeds: [create_error_embed("Registration Error", "Unable to retrieve the permission from the Users Repository.")] });
 			return { new_perms: -1 };
@@ -80,7 +80,7 @@ export async function register_user_in_db(interaction: ChatInputCommandInteracti
 	if (roblox_id === -1) return { new_perms: -1 };
 
 	const new_perms = await compute_permissions(roblox_id, nickname);
-	const db_user = await users_repo.get_by_id(member.id);
+	const db_user = await users_repo.get_by_discord_id(member.id);
 
 	let embed: EmbedBuilder;
 	if (db_user) {

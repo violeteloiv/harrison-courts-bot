@@ -1,4 +1,5 @@
 import { trello_fetch } from "./client";
+import { normalize_card_id } from "./service";
 import { TrelloCard, TrelloList } from "./types";
 
 /**
@@ -19,7 +20,34 @@ export async function get_lists(board_id: string): Promise<TrelloList[]> {
  * @param list_id The list id
  */
 export async function move_card_to_list(card_id: string, list_id: string) {
-    await trello_fetch(`/cards/${card_id}&idList=${list_id}`, { method: "PUT" });
+    await trello_fetch(`/cards/${card_id}?idList=${list_id}`, { method: "PUT" });
+}
+
+export async function move_card_to_list_by_name(card_id: string, list_name: string) {
+    const normalized_card_id = normalize_card_id(card_id);
+
+    const card = await trello_fetch(
+        `/cards/${normalized_card_id}`,
+        { method: "GET" }
+    );
+
+    const lists = await trello_fetch(
+        `/boards/${card.idBoard}/lists`,
+        { method: "GET" }
+    );
+
+    const target_list = lists.find(
+        (l: any) => l.name === list_name
+    );
+
+    if (!target_list) {
+        throw new Error(`List "${list_name}" not found on board`);
+    }
+
+    await trello_fetch(
+        `/cards/${normalized_card_id}?idList=${target_list.id}`,
+        { method: "PUT" }
+    );
 }
 
 /**

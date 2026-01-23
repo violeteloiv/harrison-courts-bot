@@ -18,9 +18,10 @@ import { Answer, Form } from "../form";
 import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id } from "../../helper/format";
 import { get_id_from_user } from "../../api/discord/user";
 
-import { COURTS_SERVER_ID } from "../../config";
+import { BOT_SUCCESS_COLOR, COURTS_SERVER_ID } from "../../config";
 import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
 import { format_error_info } from "../../api/error";
+import { get_bar_data } from "../../api/google/sheets";
 
 export interface CivilCaseInfo {
     permission: number,
@@ -150,27 +151,63 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
 
         const embed = new EmbedBuilder()
             .setTitle("Form Conclusion")
-            .setColor("#9853b5")
+            .setColor(BOT_SUCCESS_COLOR)
             .setTimestamp();
 
         let parties = [];
-        plaintiffs.forEach(async (plaintiff) => {
-            let id = await get_id_from_user(plaintiff, COURTS_SERVER_ID);
-            if (!id) return info.message.edit({ embeds: [create_error_embed("Information Error", "The plaintiffs must be registered in the courts discord server before filing.")]})
+        console.log("Plaintiffs: " + plaintiffs);
+        console.log("Defendants: " + defendants);
 
-            parties.push({ user_id: id, role: "plaintiff" as CaseRole });
-        });
-        defendants.forEach(async (defendant) => {
+        for (const plaintiff of plaintiffs) {
+            let id = await noblox.getIdFromUsername(plaintiff);
+
+            let user = await users_repo.get_by_id(id);
+            if (!user) {
+                await info.message.edit({
+                    embeds: [create_error_embed(
+                        "Information Error",
+                        "The plaintiffs must be registered in the courts discord server before filing."
+                    )]
+                });
+                return;
+            }
+
+            parties.push({ user_id: String(id), role: "plaintiff" as CaseRole });
+        }
+
+        for (const defendant of defendants) {
             let id = await get_id_from_user(defendant, COURTS_SERVER_ID);
-            if (id) parties.push({ user_id: await get_id_from_user(defendant, COURTS_SERVER_ID), role: "defendant" as CaseRole });
-        });
+
+            let user = await users_repo.get_by_id(id);
+
+            if (user) {
+                parties.push({
+                    user_id: String(id), 
+                    role: "defendant" as CaseRole
+                });
+            } else {
+                const def_roblox_id = await noblox.getIdFromUsername(defendant);
+
+                await users_repo.upsert({
+                    discord_id: "0",
+                    roblox_id: String(def_roblox_id),
+                    permission: 0
+                });
+                parties.push({
+                    user_id: String(def_roblox_id),
+                    role: "defendant" as CaseRole
+                });
+            }
+        }
 
         // Add an NOA to the filing if they are an attorney.
         if ((info.permission & permissions_list.ATTORNEY) > 0) {
             embed.setDescription("Uploading your Notice of Appearance...");
             info.message.edit({ embeds: [embed] });
 
-            // TODO: Use the user's actual bar number if it exists
+            const bar_data = await get_bar_data(username);
+            if (!bar_data) return await info.message.edit({ embeds: [create_error_embed("Bar Data Error", "Your data is not listed in the Bar Database.")] });
+
             processed_docs.push({ doc_link: await create_and_store_noa({
                 case_id: case_code,
                 plaintiffs: plaintiffs,
@@ -178,12 +215,12 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
                 presiding_judge: "TBD",
                 username: username,
                 jurisdiction: "COUNTY COURT",
-                bar_number: 111000,
+                bar_number: bar_data.bar_number,
                 party: "Plaintiff",
             })});
             processed_doc_types.push({ type: "Notice of Appearance" });
 
-            parties.push({ user_id: info.id, role: "p_counsel" as CaseRole });
+            parties.push({ user_id: user?.roblox_id!, role: "p_counsel" as CaseRole });
         }
 
         if (doc_types) {
@@ -234,6 +271,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
         }
         case_card.description = new_description;
 
+        // TODO: Replace with constants
         case_card.labels = [
             { id: "6897f0d8fb4520a9e3064806", name: "PENDING" },
             { id: "6897f11ed92e87ddd328ed1b", name: "CIVIL" },
@@ -249,10 +287,9 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
 
         let filing_id = await get_unique_filing_id();
 
-        console.log(processed_doc_types.length);
         if (processed_doc_types.length != 0) {
             await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties });
-            await filings_repo.upsert({ filing_id: filing_id, case_code: case_code, party: "Plaintiff", filed_by: info.id,  types: processed_doc_types, documents: processed_docs });
+            await filings_repo.upsert({ filing_id: filing_id, case_code: case_code, party: "Plaintiff", filed_by: user?.roblox_id!,  types: processed_doc_types, documents: processed_docs });
         } else {
             await cases_repo.upsert({ case_code: case_code, judge: "", card_link: case_card.url, channel: "", status: "pending", parties: parties });
         }
