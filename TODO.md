@@ -12,11 +12,7 @@
         - [ ] Check if the case is valid and in the system, and that there's been a ruling.
         - [ ] Check if the individual filing is a party to the case, or an attorney for a party.
         - [ ] Create the trello implementations for the appeals filing.
-    - [ ] Register users by trying to find their username in the discord, and fall back on something else (TBD)
     - [ ] Add a five minute cooldown between running the command.
-
-- [ ] Make it so a complaint is required to file a case
-- [ ] Make it so that if an assignment already exists, it won't file another assignment if the judge is removed
 
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case

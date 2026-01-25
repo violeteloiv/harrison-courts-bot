@@ -8,7 +8,7 @@ import { UsersRepository, User as DBUser } from "../api/db/repos/users";
 import { create_error_embed } from "../api/discord/visual";
 import { create_and_store_assignment, create_and_store_reassignment } from "../api/google/documents";
 import { permissions_list } from "../api/permissions";
-import { get_by_short_link, update_card } from "../api/trello/card";
+import { check_if_filing_in_record, get_by_short_link, update_card } from "../api/trello/card";
 import { move_card_to_list_by_name } from "../api/trello/list";
 import { get_trello_due_date, normalize_card_id } from "../api/trello/service";
 
@@ -32,7 +32,7 @@ export const data = new SlashCommandBuilder()
             .setRequired(true)
     )
     .addUserOption(option =>
-        option 
+        option
             .setName("judge")
             .setDescription("The judge you are assigning the case to")
             .setRequired(true)
@@ -101,7 +101,7 @@ export async function execute(interaction: CommandInteraction) {
         .setDescription("Processing Request")
         .setColor(BOT_SUCCESS_COLOR)
         .setTimestamp();
-    
+
     await interaction.editReply({ embeds: [processing_embed] });
 
     try {
@@ -123,7 +123,7 @@ export async function execute(interaction: CommandInteraction) {
         card.description = card.description.replace(/(\*\*Presiding Judge:\*\*\s*)(.+)/, `$1${judge_nickname}`);
         card.description = card.description.replace(/(\*\*Date Assigned:\*\*\s*)(.+)/, `$1${long_month_date_format(new Date())}`);
         card.deadline = get_trello_due_date(3);
-        
+
         let case_type = court_case.case_code;
         let jurisdiction;
         if (case_type == "appeal" || case_type == "admin") {
@@ -134,7 +134,10 @@ export async function execute(interaction: CommandInteraction) {
 
         let db_user = await users_repo.get_by_discord_id(interaction.user!.id);
 
-        if (court_case.status == "pending") {
+        // Determine if "Assignment" exists as a filing in the record
+        let assignment_filing = check_if_filing_in_record(card, "Assignment");
+
+        if (court_case.status == "pending" && !assignment_filing) {
             card.labels = card.labels.filter(label => label.name !== "PENDING");
             if (card.boardId == COUNTY_COURT_BOARD_ID) {
                 card.labels.push({
@@ -157,7 +160,7 @@ export async function execute(interaction: CommandInteraction) {
                             : p.organization
                     )
             );
-    
+
             const defendant_names = await Promise.all(
                 (court_case.parties ?? [])
                     .filter(party => party.role === "defendant")
@@ -192,7 +195,7 @@ export async function execute(interaction: CommandInteraction) {
                             : p.organization
                     )
             );
-    
+
             const defendant_names = await Promise.all(
                 (court_case.parties ?? [])
                     .filter(party => party.role === "defendant")
@@ -215,7 +218,7 @@ export async function execute(interaction: CommandInteraction) {
             await filings_repo.upsert({ filing_id: filing_id, case_code: case_id, party: "Court",  filed_by: db_user?.roblox_id!, types: [{ type: "Reassignment"}], documents: [{doc_link: reassignment}] });
             card.description = update_filing_record(card.description, ["Reassignment"], [reassignment], clerk_nickname!);
         }
-        
+
         await update_card(card);
         if (case_type == "appeal" || case_type == "admin") {
             await move_card_to_list_by_name(card.id, "Docket");
@@ -224,7 +227,7 @@ export async function execute(interaction: CommandInteraction) {
                 await move_card_to_list_by_name(card.id, "Circuit Docket");
             } else {
                 await move_card_to_list_by_name(card.id, `Docket of ${judge_nickname}`);
-            }            
+            }
         }
 
         processing_embed.setDescription("Trello Card Updated, Creating the Channel.")
@@ -295,7 +298,7 @@ export async function execute(interaction: CommandInteraction) {
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
-                },  
+                },
             ]
 
             if (case_type == "appeal" || case_type == "admin" || (judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
@@ -350,7 +353,7 @@ export async function execute(interaction: CommandInteraction) {
                 parent: category.id,
                 permissionOverwrites: perm_overwrites
             });
-            
+
             await cases_repo.update(case_id, { channel: channel.id });
 
             channel.send(`<@${judge_user.id}>, you have been assigned: ${court_case.card_link}`);
@@ -378,7 +381,7 @@ export async function execute(interaction: CommandInteraction) {
                 ) as CategoryChannel;
                 channel.setParent(category.id, { lockPermissions: false });
             }
-            
+
 
             if (channel.isTextBased()) {
                 channel.send(`<@${judge_user.id}>, you have been reassigned to this case: ${court_case.card_link}`);

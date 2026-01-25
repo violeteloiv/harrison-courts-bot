@@ -3,7 +3,7 @@ import { CaseCard, Label, TrelloCard } from "./types";
 
 /**
  * Maps card data to a CaseCard.
- * 
+ *
  * @param card The raw card data
  * @returns The new CaseCard
  */
@@ -24,7 +24,7 @@ export function map_to_case_card(card: any): CaseCard {
 
 /**
  * Creates a card.
- * 
+ *
  * @param list_id The list to place the card in
  * @param card_data The data for the card
  * @returns The new card data
@@ -54,7 +54,7 @@ export async function create_card(list_id: string, card_data: TrelloCard) {
 
 /**
  * Copies a card from a template card.
- * 
+ *
  * @param source_card_id The source id card to copy
  * @param list_id The list to place the card into
  * @param name The name of the new card
@@ -75,7 +75,7 @@ export async function copy_card(
 
 /**
  * Updates a card with new data.
- * 
+ *
  * @param card The new data
  */
 export async function update_card(card: CaseCard) {
@@ -105,7 +105,7 @@ export async function update_card(card: CaseCard) {
 
 /**
  * Sets labels for a card.
- * 
+ *
  * @param card_id The card id
  * @param labels A list of labels
  */
@@ -119,7 +119,7 @@ export async function set_card_labels(card_id: string, labels: Label[]) {
 
 /**
  * Gets a card by its short link
- * 
+ *
  * @param short_link The short link to retrieve the card by
  * @returns Card data
  */
@@ -130,7 +130,7 @@ export async function get_by_short_link(short_link: string): Promise<CaseCard> {
 
 /**
  * Gets the case code from a case card.
- * 
+ *
  * @param card The card
  * @returns Either the HXX-####-## code or null depending on if it exists in the card.
  */
@@ -142,10 +142,26 @@ export function get_case_code_from_card(card: CaseCard): string | null {
 
 /**
  * Gets a card based on its ID.
- * 
+ *
  * @param card_id The ID of the card to retrieve
  * @returns The card data
  */
 export async function get_card(card_id: string): Promise<TrelloCard | null> {
     return (await trello_fetch(`/cards/${card_id}`)) as TrelloCard;
+}
+
+/**
+ * Checks if a certain filing type exists in the card's record.
+ *
+ * @param card The case card we want to check
+ * @param filing_type The filing type to check for
+ * @returns Whether or not the filing type exists in the record
+ */
+export function check_if_filing_in_record(card: CaseCard, filing_type: string): boolean {
+    if (!card.description) return false;
+
+    const lower = card.description.toLowerCase();
+    const target = filing_type.toLowerCase();
+
+    return lower.includes(`[${target}](`) || lower.includes(`| ${target}`);
 }

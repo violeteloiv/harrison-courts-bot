@@ -16,7 +16,6 @@ import { copy_case_card, get_trello_due_date } from "../../api/trello/service";
 
 import { Answer, Form } from "../form";
 import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id } from "../../helper/format";
-import { get_id_from_user } from "../../api/discord/user";
 
 import { BOT_SUCCESS_COLOR, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
 import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
@@ -37,7 +36,7 @@ const cases_repo = new CasesRepository(db);
 
 /**
  * Creates a filing form for a civil case.
- * 
+ *
  * @returns The form for the civil case processing.
  */
 export function create_civil_filing_form(): Form {
@@ -75,7 +74,7 @@ export function create_civil_filing_form(): Form {
     form.questions.push({
         prompt: "Please respond with a list of defendants for the action, or, type 'organization:' then the name of the organization(s) in a comma separated list if you are filing against an organization.",
         handle: async (message: Message, responses: any[]) => {
-            if (message.content == "") 
+            if (message.content == "")
                 return { type: "retry", error_embed: create_error_embed("Form Error", "You must have defendants to file a civil action.") };
 
             let organization_split: string[] = message.content.split(":");
@@ -107,7 +106,7 @@ export function create_civil_filing_form(): Form {
     doc_types_question += "- Demand\n";
     doc_types_question += "- Notice\n";
     doc_types_question += "If you do not wish to file any documents initially, type 'N/A'";
-    
+
     form.questions.push({
         prompt: doc_types_question,
         handle: (message: Message, responses: any[]) => {
@@ -117,8 +116,10 @@ export function create_civil_filing_form(): Form {
                 return { type: "skip", skipBy: 2 };
             } else {
                 let doc_types = msg.split(",").map(item => item.trim());
+                if (!doc_types.includes("complaint"))
+                    return { type: "retry", error_embed: create_error_embed("Form Error", "A Complaint is required to initiate a civil action.") }
                 for (let i = 0; i < doc_types.length; i++)
-                    if (doc_types[i] != "complaint"  && doc_types[i] != "affidavit" && doc_types[i] != "demand" && doc_types[i] != "notice")
+                    if (doc_types[i] != "complaint" && doc_types[i] != "affidavit" && doc_types[i] != "demand" && doc_types[i] != "notice")
                         return { type: "retry", error_embed: create_error_embed("Form Error", "You can only file one of the above documents when initiating a civil action.") };
 
                 return { type: "answer", answer: { name: "doc_types", value: doc_types } };
@@ -153,7 +154,7 @@ export function create_civil_filing_form(): Form {
             } else {
                 let docs = message.content.split(",").map(item => item.trim());
                 for (let i = 0; i < docs.length; i++)
-                    if (docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/)) 
+                    if (docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/))
                         return { type: "retry", error_embed: create_error_embed("Form Error", "If submitting links, you can only submit Google Document Links") };
 
                 return { type: "answer", answer: { name: "gdrive_docs", value: docs } };
@@ -166,7 +167,7 @@ export function create_civil_filing_form(): Form {
 
 /**
  * Processes the data received from the civil filing form.
- * 
+ *
  * @param info The information received
  * @param responses The responses received
  */
@@ -270,7 +271,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
             // Process the supplied documents!
             let pdf_docs_response: Answer = responses.find(val => val.name == "pdf_att")!;
             let gdrive_docs_response: Answer = responses.find(val => val.name == "gdrive_docs")!;
-            
+
             if (gdrive_docs_response) {
                 let gdrive_docs = gdrive_docs_response.value;
                 for (let i = 0; i < gdrive_docs.length; i++) {
