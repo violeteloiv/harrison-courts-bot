@@ -2,7 +2,7 @@ import { EmbedBuilder, Message } from "discord.js";
 import noblox from "noblox.js";
 
 import { CaseCodesRepository } from "../../api/db/repos/case_codes";
-import { CaseRole, CasesRepository } from "../../api/db/repos/cases";
+import { CaseParty, CaseRole, CasesRepository } from "../../api/db/repos/cases";
 import { DatabaseClient } from "../../api/db/client";
 import { FilingRepository } from "../../api/db/repos/filings";
 import { UsersRepository } from "../../api/db/repos/users";
@@ -44,22 +44,59 @@ export function create_civil_filing_form(): Form {
     let form: Form = { questions: [] };
 
     form.questions.push({
-        prompt: "Please respond with a list of plaintiffs as a command separated list of roblox usernames.",
-        handle: (message: Message, responses: Answer[]) => {
+        prompt: "Please respond with a list of plaintiffs for the action, or, type 'organization:' then the name of the organization(s) in a comma separated list if you are filing on behalf of an organization.",
+        handle: async (message: Message, responses: Answer[]) => {
             if (message.content == "")
                 return { type: "retry", error_embed: create_error_embed("Form Error", "You must have plaintiffs to file a civil action.") };
 
-            let plaintiffs: string[] = message.content.split(",").map(item => item.trim());
+            let organization_split: string[] = message.content.split(":");
+            let plaintiffs: CaseParty[] = [];
+            if (organization_split[0].toLowerCase() === "organization" || organization_split[0].toLowerCase() === "org") {
+                // Process Organization
+                let organization_names = organization_split[1].split(",").map(item => item.trim());
+                for (const org_name of organization_names) {
+                    plaintiffs.push({ user_id: null, role: "plaintiff", organization: org_name });
+                }
+            } else {
+                // Process Plaintiffs
+                let plaintiff_names: string[] = message.content.split(",")
+                    .map(item => item.trim());
+                for (const plaintiff_name of plaintiff_names) {
+                    let id = await noblox.getIdFromUsername(plaintiff_name);
+                    if (!id) return { type: "retry", error_embed: create_error_embed("Submission Error", `The user ${plaintiff_name} could not be found on Roblox.`) };
+                    plaintiffs.push({ user_id: String(id), role: "plaintiff", organization: "" });
+                }
+            }
+
             return { type: "answer", answer: { name: "plaintiffs", value: plaintiffs } };
         }
     });
 
     form.questions.push({
-        prompt: "Please respond with a list of defendants as a command separated list of roblox usernames.",
-        handle: (message: Message, responses: any[]) => {
-            if (message.content == "") return { type: "retry", error_embed: create_error_embed("Form Error", "You must have defendants to file a civil action.") };
+        prompt: "Please respond with a list of defendants for the action, or, type 'organization:' then the name of the organization(s) in a comma separated list if you are filing against an organization.",
+        handle: async (message: Message, responses: any[]) => {
+            if (message.content == "") 
+                return { type: "retry", error_embed: create_error_embed("Form Error", "You must have defendants to file a civil action.") };
 
-            let defendants: string[] = message.content.split(",").map(item => item.trim());
+            let organization_split: string[] = message.content.split(":");
+            let defendants: CaseParty[] = [];
+            if (organization_split[0].toLowerCase() === "organization" || organization_split[0].toLowerCase() === "org") {
+                // Process Organization
+                let organization_names = organization_split[1].split(",").map(item => item.trim());
+                for (const org_name of organization_names) {
+                    defendants.push({ user_id: null, role: "defendant", organization: org_name });
+                }
+            } else {
+                // Process Defendants
+                let defendant_names: string[] = message.content.split(",")
+                    .map(item => item.trim());
+                for (const defendant_name of defendant_names) {
+                    let id = await noblox.getIdFromUsername(defendant_name);
+                    if (!id) return { type: "retry", error_embed: create_error_embed("Submission Error", `The user ${defendant_name} could not be found on Roblox.`) };
+                    defendants.push({ user_id: String(id), role: "defendant", organization: "" });
+                }
+            }
+
             return { type: "answer", answer: { name: "defendants", value: defendants } };
         }
     });
@@ -134,8 +171,8 @@ export function create_civil_filing_form(): Form {
  * @param responses The responses received
  */
 export async function process_civil_filing_form(info: CivilCaseInfo, responses: Answer[]) {
-    let plaintiffs = responses.find(val => val.name == "plaintiffs")!.value as string[];
-    let defendants = responses.find(val => val.name == "defendants")!.value as string[];
+    let plaintiffs = responses.find(val => val.name == "plaintiffs")!.value as { user_id: string, role: CaseRole, organization: string }[];
+    let defendants = responses.find(val => val.name == "defendants")!.value as { user_id: string, role: CaseRole, organization: string }[];
     let doc_types = responses.find(val => val.name == "doc_types")!.value as string[];
 
     try {
@@ -154,49 +191,54 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
             .setColor(BOT_SUCCESS_COLOR)
             .setTimestamp();
 
-        let parties = [];
+        let parties: CaseParty[] = [];
 
         for (const plaintiff of plaintiffs) {
-            let id = await noblox.getIdFromUsername(plaintiff);
-
-            let user = await users_repo.get_by_id(id);
-            if (!user) {
-                await info.message.edit({
-                    embeds: [create_error_embed(
-                        "Information Error",
-                        "The plaintiffs must be registered in the courts discord server before filing."
-                    )]
-                });
-                return;
+            if (plaintiff.user_id) {
+                let p_user = await users_repo.get_by_id(plaintiff.user_id);
+                // Ensure that the plaintiff is registered in the discord server.
+                if (!p_user) {
+                    await info.message.edit({
+                        embeds: [create_error_embed(
+                            "Information Error",
+                            "The plaintiffs must be registered in the courts discord server before filing."
+                        )]
+                    });
+                    return;
+                }
             }
-
-            parties.push({ user_id: String(id), role: "plaintiff" as CaseRole });
+            parties.push(plaintiff);
         }
 
         for (const defendant of defendants) {
-            let id = await get_id_from_user(defendant, COURTS_SERVER_ID);
-
-            let user = await users_repo.get_by_id(id);
-
-            if (user) {
-                parties.push({
-                    user_id: String(id), 
-                    role: "defendant" as CaseRole
-                });
-            } else {
-                const def_roblox_id = await noblox.getIdFromUsername(defendant);
-
-                await users_repo.upsert({
-                    discord_id: "0",
-                    roblox_id: String(def_roblox_id),
-                    permission: 0
-                });
-                parties.push({
-                    user_id: String(def_roblox_id),
-                    role: "defendant" as CaseRole
-                });
+            if (defendant.user_id) {
+                let d_user = await users_repo.get_by_id(defendant.user_id);
+                if (!d_user) {
+                    await users_repo.upsert({
+                        discord_id: "0",
+                        roblox_id: defendant.user_id,
+                        permission: 0
+                    });
+                }
             }
+            parties.push(defendant)
         }
+
+        const plaintiff_names = await Promise.all(
+            plaintiffs.map(p =>
+                p.user_id !== null
+                ? noblox.getUsernameFromId(Number(p.user_id))
+                : p.organization
+            )
+        );
+
+        const defendant_names = await Promise.all(
+            defendants.map(d =>
+                d.user_id !== null
+                ? noblox.getUsernameFromId(Number(d.user_id))
+                : d.organization
+            )
+        );
 
         // Add an NOA to the filing if they are an attorney.
         if ((info.permission & permissions_list.ATTORNEY) > 0) {
@@ -208,8 +250,8 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
 
             processed_docs.push({ doc_link: await create_and_store_noa({
                 case_id: case_code,
-                plaintiffs: plaintiffs,
-                defendants: defendants,
+                plaintiffs: plaintiff_names,
+                defendants: defendant_names,
                 presiding_judge: "TBD",
                 username: username,
                 bar_number: bar_data.bar_number,
@@ -217,7 +259,11 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
             })});
             processed_doc_types.push({ type: "Notice of Appearance" });
 
-            parties.push({ user_id: user?.roblox_id!, role: "p_counsel" as CaseRole });
+            if (plaintiffs[0].organization !== "") {
+                parties.push({ user_id: user?.roblox_id!, role: "p_counsel" as CaseRole, organization: plaintiffs[0].organization });
+            } else {
+                parties.push({ user_id: user?.roblox_id!, role: "p_counsel" as CaseRole, organization: "" });
+            }
         }
 
         if (doc_types) {
@@ -258,7 +304,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
         info.message.edit({ embeds: [embed] });
 
         // Upload to trello.
-        let case_card = await copy_case_card("county", "civil", plaintiffs, defendants);
+        let case_card = await copy_case_card("county", "civil", plaintiff_names, defendant_names);
         case_card.deadline = get_trello_due_date(3);
 
         const case_card_header = `**Presiding Judge:** TBD\n**Date Assigned:** TBD\n**Docket #:** ${case_code}\n\n---\n\n**Record:**\n`;

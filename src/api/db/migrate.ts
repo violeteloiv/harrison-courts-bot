@@ -1,9 +1,11 @@
 import { DatabaseClient } from "./client";
 import { Migration } from "./migration";
 import { migration as m001 } from "./migrations/001_init";
+import { migration as m002 } from "./migrations/002_add_org_to_case_parties";
+import { migration as m003 } from "./migrations/003_make_case_parties_nullable";
 
 const migrations: Migration[] = [
-    m001,
+    m001, m002, m003
 ];
 
 /**

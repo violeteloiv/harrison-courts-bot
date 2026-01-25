@@ -1,7 +1,4 @@
 - [ ] Register Command
-    - [ ] When losing judge permissions:
-        - [ ] Transfer all cases assigned to the judge to "PENDING".
-        - [ ] Transfer all case channels to a separate category.
     - [ ] Get the specific discord server IDs for which the register command can be run.
         - [ ] Integrate Police Permissions.
 
@@ -17,6 +14,9 @@
         - [ ] Create the trello implementations for the appeals filing.
     - [ ] Register users by trying to find their username in the discord, and fall back on something else (TBD)
     - [ ] Add a five minute cooldown between running the command.
+
+- [ ] Make it so a complaint is required to file a case
+- [ ] Make it so that if an assignment already exists, it won't file another assignment if the judge is removed
 
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case

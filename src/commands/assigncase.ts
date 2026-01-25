@@ -148,17 +148,25 @@ export async function execute(interaction: CommandInteraction) {
                 await cases_repo.update(case_id, { status: "open" });
             }
 
-            let plaintiffs = court_case.parties?.filter(party => party.role === "plaintiff").map(party => party.user_id)!;
-            let plaintiff_names = [];
-            for (const plaintiff of plaintiffs) {
-                plaintiff_names.push(await noblox.getUsernameFromId(Number(plaintiff)));
-            }
-
-            let defendants = court_case.parties?.filter(party => party.role === "defendant").map(party => party.user_id)!;
-            let defendant_names = [];
-            for (const defendant of defendants) {
-                defendant_names.push(await noblox.getUsernameFromId(Number(defendant)));
-            }
+            const plaintiff_names = await Promise.all(
+                (court_case.parties ?? [])
+                    .filter(party => party.role === "plaintiff")
+                    .map(p =>
+                        p.user_id !== null
+                            ? noblox.getUsernameFromId(Number(p.user_id))
+                            : p.organization
+                    )
+            );
+    
+            const defendant_names = await Promise.all(
+                (court_case.parties ?? [])
+                    .filter(party => party.role === "defendant")
+                    .map(p =>
+                        p.user_id !== null
+                            ? noblox.getUsernameFromId(Number(p.user_id))
+                            : p.organization
+                    )
+            );
 
             let assignment = await create_and_store_assignment(
                 { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname! }
@@ -175,17 +183,25 @@ export async function execute(interaction: CommandInteraction) {
             let case_type_arr = ["CIVIL", "CRIMINAL", "EXPUNGEMENT", "SPECIAL", "APPEAL", "ADMIN"];
             card.labels = card.labels.filter(label => !case_type_arr.includes(label.name));
 
-            let plaintiffs = court_case.parties?.filter(party => party.role === "plaintiff").map(party => party.user_id)!;
-            let plaintiff_names = [];
-            for (const plaintiff of plaintiffs) {
-                plaintiff_names.push(await noblox.getUsernameFromId(Number(plaintiff)));
-            }
-
-            let defendants = court_case.parties?.filter(party => party.role === "defendant").map(party => party.user_id)!;
-            let defendant_names = [];
-            for (const defendant of defendants) {
-                defendant_names.push(await noblox.getUsernameFromId(Number(defendant)));
-            }
+            const plaintiff_names = await Promise.all(
+                (court_case.parties ?? [])
+                    .filter(party => party.role === "plaintiff")
+                    .map(p =>
+                        p.user_id !== null
+                            ? noblox.getUsernameFromId(Number(p.user_id))
+                            : p.organization
+                    )
+            );
+    
+            const defendant_names = await Promise.all(
+                (court_case.parties ?? [])
+                    .filter(party => party.role === "defendant")
+                    .map(p =>
+                        p.user_id !== null
+                            ? noblox.getUsernameFromId(Number(p.user_id))
+                            : p.organization
+                    )
+            );
 
             let reassignment = await create_and_store_reassignment(
                 { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname! }
@@ -218,6 +234,36 @@ export async function execute(interaction: CommandInteraction) {
         if (court_case.status == "pending") {
             let category;
 
+            if (!interaction.guild) {
+                return interaction.editReply({
+                    embeds: [create_error_embed("Bot Error", "Guild data missing.")]
+                });
+            }
+
+            await interaction.guild.channels.fetch();
+            await interaction.guild.roles.fetch();
+
+            const deputy_clerk_role = interaction.guild.roles.cache.find(r => r.name === "Deputy Clerk");
+            if (!deputy_clerk_role) {
+                return interaction.editReply({
+                    embeds: [create_error_embed("Role Missing", "Deputy Clerk role not found.")]
+                });
+            }
+
+            const registrar_role = interaction.guild.roles.cache.find(r => r.name === "Registrar");
+            if (!registrar_role) {
+                return interaction.editReply({
+                    embeds: [create_error_embed("Role Missing", "Registrar role not found.")]
+                });
+            }
+
+            const chief_judge_role = interaction.guild.roles.cache.find(r => r.name === "Chief Judge");
+            if (!chief_judge_role) {
+                return interaction.editReply({
+                    embeds: [create_error_embed("Role Missing", "Chief Judge role not found.")]
+                });
+            }
+
             let perm_overwrites = [
                 {
                     id: interaction.guild!.roles.everyone.id,
@@ -233,19 +279,19 @@ export async function execute(interaction: CommandInteraction) {
                         ]
                 },
                 {
-                    id: interaction.guild!.roles.cache.find(role => role.name == "Deputy Clerk")!.id,
+                    id: deputy_clerk_role.id,
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
                 },
                 {
-                    id: interaction.guild!.roles.cache.find(role => role.name == "Registrar")!.id,
+                    id: registrar_role.id,
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
                 },
                 {
-                    id: interaction.guild!.roles.cache.find(role => role.name == "Chief Judge")!.id,
+                    id: chief_judge_role.id,
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
@@ -257,8 +303,21 @@ export async function execute(interaction: CommandInteraction) {
                     channel => channel.name == `Circuit Court` && channel.type == ChannelType.GuildCategory
                 ) as CategoryChannel;
 
+                if (!category) {
+                    return interaction.editReply({
+                        embeds: [create_error_embed("Category Missing", "The 'Circuit Court' category does not exist.")]
+                    });
+                }
+
+                const circuit_judge_role = interaction.guild.roles.cache.find(r => r.name === "Circuit Judge");
+                if (!circuit_judge_role) {
+                    return interaction.editReply({
+                        embeds: [create_error_embed("Role Missing", "Circuit Judge role not found.")]
+                    });
+                }
+
                 perm_overwrites.push({
-                    id: interaction.guild!.roles.cache.find(role => role.name == "Circuit Judge")!.id,
+                    id: circuit_judge_role.id,
                     allow: [
                         PermissionFlagsBits.SendMessages
                     ]
@@ -267,6 +326,15 @@ export async function execute(interaction: CommandInteraction) {
                 category = interaction.guild!.channels.cache.find(
                     channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
                 ) as CategoryChannel;
+
+                if (!category) {
+                    return interaction.editReply({
+                        embeds: [create_error_embed(
+                            "Category Missing",
+                            `Chambers of ${judge_nickname} category does not exist.`
+                        )]
+                    });
+                }
 
                 perm_overwrites.push({
                     id: judge_user.id,

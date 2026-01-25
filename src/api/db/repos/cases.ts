@@ -9,6 +9,12 @@ import { Repository } from "../repository";
  */
 export type CaseRole = "plaintiff" | "defendant" | "p_counsel" | "d_counsel";
 
+export type CaseParty = {
+  user_id: string | null;
+  role: CaseRole;
+  organization: string;
+}
+
 /**
  * The data type which encompasses the data of a case.
  * 
@@ -24,7 +30,7 @@ export type Case = {
     created_at?: Date;
     updated_at?: Date;
 
-    parties?: { user_id: string; role: CaseRole }[];
+    parties?: CaseParty[];
 }
 
 /**
@@ -63,7 +69,7 @@ export class CasesRepository extends Repository<Case> {
             {
                 table: "case_parties",
                 foreign_key: "case_code",
-                columns: ["user_id", "role"],
+                columns: ["user_id", "role", "organization"],
                 field_name: "parties",
             }
         ];
