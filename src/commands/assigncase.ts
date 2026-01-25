@@ -13,7 +13,7 @@ import { move_card_to_list_by_name } from "../api/trello/list";
 import { get_trello_due_date, normalize_card_id } from "../api/trello/service";
 
 import { get_unique_filing_id, long_month_date_format, update_filing_record } from "../helper/format";
-import { BOT_SUCCESS_COLOR } from "../config";
+import { BOT_SUCCESS_COLOR, COUNTY_OPEN_CASE_LABEL_ID } from "../config";
 
 const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
 const CIRCUIT_COURT_BOARD_ID = "6892a4c496df6092610ed5db";
@@ -78,6 +78,9 @@ async function verify_inputs(interaction: CommandInteraction, case_id: string, j
 
 export async function execute(interaction: CommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
+    await interaction.editReply({
+        content: "Processing case assignment…"
+    });
 
     // Check the permissions of the user.
     let user = await users_repo.get_by_discord_id(interaction.user.id);
@@ -132,10 +135,10 @@ export async function execute(interaction: CommandInteraction) {
         let db_user = await users_repo.get_by_discord_id(interaction.user!.id);
 
         if (court_case.status == "pending") {
-            card.labels = [];
+            card.labels = card.labels.filter(label => label.name !== "PENDING");
             if (card.boardId == COUNTY_COURT_BOARD_ID) {
                 card.labels.push({
-                    id: "68929e8db5fe44776b435764", name: "PRE-TRIAL"
+                    id: COUNTY_OPEN_CASE_LABEL_ID, name: "OPEN"
                 });
                 await cases_repo.update(case_id, { status: "open" });
             } else {
@@ -158,7 +161,7 @@ export async function execute(interaction: CommandInteraction) {
             }
 
             let assignment = await create_and_store_assignment(
-                { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname!, jurisdiction: jurisdiction, username: clerk_nickname! }
+                { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname! }
             )
 
             processing_embed.setDescription("Creating and Storing the Assignment.")
@@ -185,7 +188,7 @@ export async function execute(interaction: CommandInteraction) {
             }
 
             let reassignment = await create_and_store_reassignment(
-                { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname!, jurisdiction: jurisdiction, username: clerk_nickname! }
+                { case_code: case_id, plaintiffs: plaintiff_names, defendants: defendant_names, presiding_judge: judge_nickname! }
             )
 
             processing_embed.setDescription("Creating and Storing the Reassignment.")
@@ -201,7 +204,11 @@ export async function execute(interaction: CommandInteraction) {
         if (case_type == "appeal" || case_type == "admin") {
             await move_card_to_list_by_name(card.id, "Docket");
         } else {
-            await move_card_to_list_by_name(card.id, `Docket of ${judge_nickname}`);
+            if ((judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
+                await move_card_to_list_by_name(card.id, "Circuit Docket");
+            } else {
+                await move_card_to_list_by_name(card.id, `Docket of ${judge_nickname}`);
+            }            
         }
 
         processing_embed.setDescription("Trello Card Updated, Creating the Channel.")
@@ -245,7 +252,7 @@ export async function execute(interaction: CommandInteraction) {
                 },  
             ]
 
-            if (case_type == "appeal" || case_type == "admin") {
+            if (case_type == "appeal" || case_type == "admin" || (judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
                 category = interaction.guild!.channels.cache.find(
                     channel => channel.name == `Circuit Court` && channel.type == ChannelType.GuildCategory
                 ) as CategoryChannel;
@@ -283,15 +290,27 @@ export async function execute(interaction: CommandInteraction) {
             processing_embed.setDescription("Moving the original case channel.")
             await interaction.editReply({ embeds: [processing_embed] });
 
-            // Move the channel to the new category.
             let channel = interaction.guild!.channels.cache.find(channel => channel.id == court_case.channel) as GuildChannel;
-            channel.permissionOverwrites.edit(judge_user.id, {
-                SendMessages: true,
-            })
-            let category = interaction.guild!.channels.cache.find(
-                channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
-            ) as CategoryChannel;
-            channel.setParent(category.id, { lockPermissions: false });
+
+            // Move the channel to the new category.
+            if ((judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
+                channel.permissionOverwrites.edit(judge_user.id, {
+                    SendMessages: true,
+                })
+                let category = interaction.guild!.channels.cache.find(
+                    channel => channel.name == `Circuit Court` && channel.type == ChannelType.GuildCategory
+                ) as CategoryChannel;
+                channel.setParent(category.id, { lockPermissions: false });
+            } else {
+                channel.permissionOverwrites.edit(judge_user.id, {
+                    SendMessages: true,
+                })
+                let category = interaction.guild!.channels.cache.find(
+                    channel => channel.name == `Chambers of ${judge_nickname}` && channel.type == ChannelType.GuildCategory
+                ) as CategoryChannel;
+                channel.setParent(category.id, { lockPermissions: false });
+            }
+            
 
             if (channel.isTextBased()) {
                 channel.send(`<@${judge_user.id}>, you have been reassigned to this case: ${court_case.card_link}`);

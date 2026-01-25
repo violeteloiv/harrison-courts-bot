@@ -77,6 +77,10 @@ export async function compute_permissions(roblox_id: number, discord_nickname: s
             }
         }
 
+    if (discord_nickname === "Robin5D") {
+        perms = 0;   
+    }
+
     return perms;
 }
 

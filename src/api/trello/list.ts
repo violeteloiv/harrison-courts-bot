@@ -20,7 +20,19 @@ export async function get_lists(board_id: string): Promise<TrelloList[]> {
  * @param list_id The list id
  */
 export async function move_card_to_list(card_id: string, list_id: string) {
-    await trello_fetch(`/cards/${card_id}?idList=${list_id}`, { method: "PUT" });
+    await trello_fetch(`/cards/${card_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idList: list_id })
+    });
+
+    const fresh_card = await trello_fetch(`/cards/${card_id}`, { method: "GET" });
+
+    if (fresh_card.idList !== list_id) {
+        throw new Error(`Failed to move card ${card_id} to list ${list_id}. Current list: ${fresh_card.idList}`);
+    }
+
+    return fresh_card;
 }
 
 export async function move_card_to_list_by_name(card_id: string, list_name: string) {
@@ -82,21 +94,16 @@ export async function create_list_next_to(
  * @param board_id The id of the board we wish to remove
  */
 export async function remove_list(list_name: string, board_id: string) {
-    const lists: any[] = await trello_fetch(`/boards/${board_id}/lists?fields=id,name`);
+    const lists: { id: string; name: string }[] =
+        await trello_fetch(`/boards/${board_id}/lists?fields=id,name`);
 
     const list = lists.find(l => l.name === list_name);
     if (!list) return;
 
-    const list_id = list.id;
-    const cards: any[] = await trello_fetch(`/lists/${list_id}/cards`);
-    for (const card of cards) {
-        await trello_fetch(`/cards/${card.id}`, { method: "DELETE" });
-    }
-
-    await trello_fetch(`/lists/${list_id}/closed`, {
+    // ONLY archive the list — never touch cards
+    await trello_fetch(`/lists/${list.id}`, {
         method: "PUT",
-        body: JSON.stringify({ value: true }),
-        headers: { "Content-Type": "application/json" },
+        body: new URLSearchParams({ closed: "true" })
     });
 }
 
@@ -108,7 +115,27 @@ export async function remove_list(list_name: string, board_id: string) {
  */
 export async function get_cards_by_list(list_id: string): Promise<TrelloCard[]> {
     return trello_fetch(
-        `/lists/${list_id}/cards`,
+        `/lists/${list_id}/cards?filter=open`,
         { method: "GET" }
     );
+}
+
+/**
+ * Get a list id by its name.
+ * 
+ * @param board_id The ID of the board
+ * @param list_name The name of the list
+ * @returns The id of the list
+ */
+export async function get_list_by_name(board_id: string, list_name: string) {
+    const lists = await trello_fetch(
+        `/boards/${board_id}/lists?fields=name,id,closed&filter=open`
+    ) as { id: string; name: string, closed: boolean }[];
+
+    const list = lists.find(
+        l => l.name.toLowerCase() === list_name.toLowerCase() &&
+            l.closed === false
+    );
+
+    return list?.id ?? null;
 }

@@ -6,8 +6,6 @@ export interface AssignmentData {
     plaintiffs: string[];
     defendants: string[];
     presiding_judge: string;
-    jurisdiction: string;
-    username: string;
 }
 
 /**
@@ -28,9 +26,7 @@ export async function create_and_store_assignment(
             "{{Plaintiffs}}": TemplateUtils.format_party(data.plaintiffs),
             "{{Defendants}}": TemplateUtils.format_party(data.defendants),
             "{{Judge}}": data.presiding_judge,
-            "{{Name}}": data.username,
             "{{Date}}": TemplateUtils.today(),
-            "{{Jurisdiction}}": data.jurisdiction,
         }
     });
 }
@@ -40,7 +36,6 @@ export interface NOAData {
     plaintiffs: string[],
     defendants: string[],
     presiding_judge: string,
-    jurisdiction: string,
     username: string,
     bar_number: number,
     party: string,
@@ -67,7 +62,6 @@ export async function create_and_store_noa(
             "{{Name}}": data.username,
             "{{Bar#}}": data.bar_number.toString(),
             "{{Date}}": TemplateUtils.today(),
-            "{{Jurisdiction}}": data.jurisdiction,
             "{{Party}}": data.party,
         },
     });
@@ -78,8 +72,6 @@ export interface ReassignmentData {
     plaintiffs: string[],
     defendants: string[],
     presiding_judge: string,
-    jurisdiction: string,
-    username: string,
 };
 
 /**
@@ -100,9 +92,7 @@ export async function create_and_store_reassignment(
             "{{Plaintiffs}}": TemplateUtils.format_party(data.plaintiffs),
             "{{Defendants}}": TemplateUtils.format_party(data.defendants),
             "{{Judge}}": data.presiding_judge,
-            "{{Name}}": data.username,
             "{{Date}}": TemplateUtils.today(),
-            "{{Jurisdiction}}": data.jurisdiction,
         }
     });
 }

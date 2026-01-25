@@ -10,6 +10,7 @@ export interface TrelloList {
 
 export interface TrelloCard {
     name: string;            // Title of the card (required)
+    id: string;
     desc?: string;           // Description text (optional)
     id_list?: string;          // The list ID the card will be created in
     id_members?: string[];    // Trello member IDs to add to the card

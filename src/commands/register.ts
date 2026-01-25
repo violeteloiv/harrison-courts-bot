@@ -2,17 +2,21 @@ import { CategoryChannel, ChannelType, ChatInputCommandInteraction, CommandInter
 import noblox from "noblox.js";
 
 import { DatabaseClient } from "../api/db/client";
+import { CasesRepository } from "../api/db/repos/cases";
 import { UsersRepository } from "../api/db/repos/users";
 import { client } from "../api/discord/client";
 import { assign_registered_role, fetch_guild_member_and_nickname, is_verified } from "../api/discord/guild";
 import { build_embed, create_error_embed, debug_embed } from "../api/discord/visual";
 import { compute_permissions, get_permission_string, permissions_list } from "../api/permissions";
-import { create_list_next_to, remove_list } from "../api/trello/list";
+import { get_card, get_case_code_from_card, map_to_case_card, update_card } from "../api/trello/card";
+import { create_list_next_to, get_cards_by_list, get_list_by_name, move_card_to_list, move_card_to_list_by_name, remove_list } from "../api/trello/list";
+import { CaseCard } from "../api/trello/types";
 
-import { AWAITING_ARCHIVING_COUNTY_LIST_ID, COUNTY_COURT_BOARD_ID, COURTS_SERVER_ID } from "../config";
+import { AWAITING_ARCHIVING_COUNTY_LIST_ID, COUNTY_COURT_BOARD_ID, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID, PENDING_CASES_COUNTY_LIST_ID } from "../config";
 
 const db = new DatabaseClient();
 const users_repo = new UsersRepository(db);
+const cases_repo = new CasesRepository(db);
 
 export const data = new SlashCommandBuilder()
     .setName("register")
@@ -176,15 +180,57 @@ export async function execute(interaction: CommandInteraction) {
 	// If the user is losing their judge permissions, archive and remove the channels and their category. Also create a trello list for their
 	// case load.
 	if (register_data.old_perms! & permissions_list.COUNTY_JUDGE && !(register_data.new_perms! & permissions_list.COUNTY_JUDGE)) {
-		// TODO: Archive active cases and return them to awaiting assignment status.
-		const category = guild.channels.cache.find(
-			c => c.name === `Chambers of ${register_data.username!}` && c.type === ChannelType.GuildCategory
-		) as CategoryChannel;
+		let list_id = await get_list_by_name(COUNTY_COURT_BOARD_ID, `Docket of ${register_data.username!}`);
+		if (!list_id) throw new Error(`Failed to get List of Name: Docket of ${register_data.username}`);
+		
+		let cards = await get_cards_by_list(list_id);
+		for (const card of cards) {
+			await move_card_to_list(card.id, PENDING_CASES_COUNTY_LIST_ID);
 
-		if (!category) return;
-		await category.fetch();
+			let case_card = map_to_case_card(await get_card(card.id));
 
-		await Promise.all(category.children.cache.map(c => c.delete()));
+			case_card.labels = case_card.labels.filter(l => l.name !== "OPEN");
+			case_card.labels.push({
+				id: COUNTY_PENDING_CASE_LABEL_ID,
+				name: "PENDING"
+			});
+
+			await update_card(case_card);
+
+			let case_code = get_case_code_from_card(case_card);
+			await cases_repo.update(case_code, { status: "pending" });
+		}
+
+		const source_cat = guild.channels.cache.find(
+			c =>
+				c.name === `Chambers of ${register_data.username!}` &&
+				c.type === ChannelType.GuildCategory
+		) as CategoryChannel | undefined;
+
+		if (!source_cat) return;
+		await source_cat.fetch();
+
+		let target_cat = guild.channels.cache.find(
+			c =>
+				c.name === "Pending Cases" &&
+				c.type === ChannelType.GuildCategory
+		) as CategoryChannel | undefined;
+
+		if (!target_cat) {
+			target_cat = await guild.channels.create({
+				name: "Pending Cases",
+				type: ChannelType.GuildCategory
+			});
+		}
+
+		// Move all child channels into the target category
+		await Promise.all(
+			source_cat.children.cache.map(channel =>
+				channel.setParent(target_cat.id, { lockPermissions: false })
+			)
+		);
+
+		await source_cat.delete();
 
 		try {
 			await remove_list(`Docket of ${register_data.username!}`, COUNTY_COURT_BOARD_ID);

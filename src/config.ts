@@ -34,12 +34,15 @@ export const REASSIGNMENT_TEMPLATE_ID = "1yfzR9WVyeEM4RHnwlxBZQjlWUD5bna4CsFvSSe
 export const OATH_FOLDER_ID = "15-YcNJ9ES-FJVOWAFxS8vED7v03qoi7b";
 
 // SHEET IDS
-export const BAR_DATABASE_SPREADSHEET_ID = "1y6vbtjiGc4hlWY2PpNTlCHwXRNh07ZchgPz-qgS6dDE";
-export const BAR_DATABASE_RANGE = "'License Register'!B7:G47";
+export const BAR_DATABASE_SPREADSHEET_ID = "1cuZyIb0a7vEbZLfmiXWeBn8s3EbvhXUdX1uby-WqAds";
+export const BAR_DATABASE_RANGE = "'Bar of the 7th Circuit'!B12:E77";
 
 // TRELLO IDS
 export const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
 export const PENDING_CASES_COUNTY_LIST_ID = "696ec3bd4493ff7eb2db5d97";
+export const CIRCUIT_DOCKET_LIST_ID = "697407dbc680e4dbeeaec50e";
+export const COUNTY_OPEN_CASE_LABEL_ID = "69741af9294d94b3ffa6fb63";
+export const COUNTY_PENDING_CASE_LABEL_ID = "6897f0d8fb4520a9e3064806";
 
 export const PENDING_CASES_CIRCUIT_LIST_ID = "6892a4c496df6092610ed6dc";
 

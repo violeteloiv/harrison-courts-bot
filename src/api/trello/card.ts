@@ -127,3 +127,25 @@ export async function get_by_short_link(short_link: string): Promise<CaseCard> {
     const card = await trello_fetch(`/cards/${short_link}`);
     return map_to_case_card(card);
 }
+
+/**
+ * Gets the case code from a case card.
+ * 
+ * @param card The card
+ * @returns Either the HXX-####-## code or null depending on if it exists in the card.
+ */
+export function get_case_code_from_card(card: CaseCard): string | null {
+    const regex = /H[A-Za-z]{2}-\d{4}-\d{2}/;
+    const match = card.description.match(regex);
+    return match ? match[0] : null;
+}
+
+/**
+ * Gets a card based on its ID.
+ * 
+ * @param card_id The ID of the card to retrieve
+ * @returns The card data
+ */
+export async function get_card(card_id: string): Promise<TrelloCard | null> {
+    return (await trello_fetch(`/cards/${card_id}`)) as TrelloCard;
+}
