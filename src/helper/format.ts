@@ -3,10 +3,11 @@ import { DatabaseClient } from "../api/db/client";
 import { CaseCodesRepository } from "../api/db/repos/case_codes";
 import { FilingRepository } from "../api/db/repos/filings";
 import { format_date_utc } from "../api/file";
+import { Case } from "../api/db/repos/cases";
 
 /**
  * Formats the case code given a case type.
- * 
+ *
  * @param case_type The case type
  * @returns A case code
  */
@@ -20,7 +21,7 @@ export async function get_code_from_case_type(case_type: string): Promise<string
     } catch (error) {
         return Promise.reject(error);
     }
-    
+
     const formatter = new Intl.NumberFormat('en', {
         minimumIntegerDigits: 4,
         useGrouping: false,
@@ -41,7 +42,7 @@ export async function get_code_from_case_type(case_type: string): Promise<string
 
 /**
  * Capitalizes each word in a sentence.
- * 
+ *
  * @param input The input sentence
  * @returns The capitalized input sentence
  */
@@ -57,7 +58,7 @@ export function capitalize_each_word(input: string): string {
 
 /**
  * Generates a random filing id of fourteen characters in length.
- * 
+ *
  * @returns The filing id.
  */
 export function generate_filing_id(): string {
@@ -66,7 +67,7 @@ export function generate_filing_id(): string {
 
 /**
  * Generates a unique filing id.
- * 
+ *
  * @returns A unique filing id
  */
 export async function get_unique_filing_id(): Promise<string> {
@@ -80,8 +81,8 @@ export async function get_unique_filing_id(): Promise<string> {
 
 /**
  * Formats a date as MONTH DD, YYYY.
- * 
- * @param date The date to format 
+ *
+ * @param date The date to format
  * @returns The formatted date
  */
 export function long_month_date_format(date: Date): string {
@@ -90,7 +91,7 @@ export function long_month_date_format(date: Date): string {
 
 /**
  * Returns an updated description with a new filing.
- * 
+ *
  * @param desc The previous description
  * @param doc_types The document types
  * @param doc_links The document links
@@ -108,14 +109,19 @@ export function update_filing_record(desc: string, doc_types: string[], doc_link
     return new_desc;
 }
 
-// export function getCaseTypeFromCaseCode(case_code: string): string {
-//     let id = case_code.slice(1, 3);
-//     if (id == "CV") return "civil";
-//     if (id == "CM") return "criminal";
-//     if (id == "EX") return "expungement";
-//     if (id == "SP") return "special";
-//     if (id == "AP") return "appeal";
-//     if (id == "AD") return "admin";
+/**
+ * Gets the case type from a specified court case.
+ *
+ * @param court_case The court case to receive the type from
+ * @returns The type of case
+ */
+export function get_case_type_from_case(court_case: Case): string {
+    let id = court_case.case_code.slice(1, 3);
+    if (id == "CV") return "civil";
+    if (id == "CM") return "criminal";
+    if (id == "LM") return "limited";
+    if (id == "AP") return "appeal";
+    if (id == "AD") return "admin";
 
-//     throw new Error("Invalid case_code");
-// }
+    throw new Error("Invalid case_code");
+}

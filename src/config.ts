@@ -41,8 +41,10 @@ export const BAR_DATABASE_RANGE = "'Bar of the 7th Circuit'!B12:E77";
 export const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
 export const PENDING_CASES_COUNTY_LIST_ID = "696ec3bd4493ff7eb2db5d97";
 export const CIRCUIT_DOCKET_LIST_ID = "697407dbc680e4dbeeaec50e";
+
 export const COUNTY_OPEN_CASE_LABEL_ID = "69741af9294d94b3ffa6fb63";
 export const COUNTY_PENDING_CASE_LABEL_ID = "6897f0d8fb4520a9e3064806";
+export const COUNTY_CIVIL_CASE_LABEL_ID = "6897f11ed92e87ddd328ed1b";
 
 export const PENDING_CASES_CIRCUIT_LIST_ID = "6892a4c496df6092610ed6dc";
 

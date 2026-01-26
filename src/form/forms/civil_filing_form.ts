@@ -17,7 +17,7 @@ import { copy_case_card, get_trello_due_date } from "../../api/trello/service";
 import { Answer, Form } from "../form";
 import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id } from "../../helper/format";
 
-import { BOT_SUCCESS_COLOR, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
+import { BOT_SUCCESS_COLOR, COUNTY_CIVIL_CASE_LABEL_ID, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
 import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
 import { format_error_info } from "../../api/error";
 import { get_bar_data } from "../../api/google/sheets";
@@ -315,10 +315,9 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
         }
         case_card.description = new_description;
 
-        // TODO: Replace with constants
         case_card.labels = [
             { id: COUNTY_PENDING_CASE_LABEL_ID, name: "PENDING" },
-            { id: "6897f11ed92e87ddd328ed1b", name: "CIVIL" },
+            { id: COUNTY_CIVIL_CASE_LABEL_ID, name: "CIVIL" },
         ]
 
         await update_card(case_card);

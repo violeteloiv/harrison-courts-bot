@@ -124,7 +124,25 @@ export async function set_card_labels(card_id: string, labels: Label[]) {
  * @returns Card data
  */
 export async function get_by_short_link(short_link: string): Promise<CaseCard> {
-    const card = await trello_fetch(`/cards/${short_link}`);
+    // Attempt to extract the shortLink if a full Trello URL was passed
+    let identifier: string;
+
+    try {
+        // Check if it looks like a Trello URL and extract the part after /c/
+        const url = new URL(short_link);
+        const pathParts = url.pathname.split("/c/");
+        if (pathParts.length > 1) {
+            // Only the part before the next slash is the real identifier
+            identifier = pathParts[1].split("/")[0];
+        } else {
+            identifier = short_link;
+        }
+    } catch {
+        // If it's not a valid URL, assume it's already just the identifier
+        identifier = short_link;
+    }
+
+    const card = await trello_fetch(`/cards/${identifier}`);
     return map_to_case_card(card);
 }
 
