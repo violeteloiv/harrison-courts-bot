@@ -92,9 +92,9 @@ export async function execute(interaction: CommandInteraction) {
         let defendant_names = await cases_repo.get_party_names_by_role(court_case.case_code, "defendant");
 
         let filings = await filings_repo.get_filings_for_case(court_case);
-        let filing_types = filings.filter(filing => filing.filed_by === user.roblox_id).map(filing => filing.types).flat();
-
-        if (!filing_types.includes({ type: "Notice of Appearance" })) {
+        let filing_types = filings.filter(filing => filing.filed_by === user.roblox_id).map(filing => filing.types).flat().map(t => t!.type);
+        console.log(filing_types);
+        if (!filing_types.includes("Notice of Appearance")) {
             // File the NOA
             let noa = await create_and_store_noa({
                 case_id: case_code, plaintiffs: plaintiff_names, defendants: defendant_names,

@@ -14,9 +14,6 @@
         - [ ] Create the trello implementations for the appeals filing.
     - [ ] Add a five minute cooldown between running the command.
 
-- [ ] NOA Command
-    - [ ] Make sure you can only file a NOA once per case
-
 - [ ] Civil Case Filing Flow
     - [X] File the Civil Case
     - [X] Review the currently pending cases
