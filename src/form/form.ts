@@ -27,7 +27,7 @@ export interface FormResult {
 
 /**
  * Creates a question embed.
- * 
+ *
  * @param text The text of the question
  * @returns An embed
  */
@@ -41,7 +41,7 @@ function question_embed(text: string): EmbedBuilder {
 
 /**
  * Creates a conclusion embed.
- * 
+ *
  * @returns An embed
  */
 function conclusion_embed(): EmbedBuilder {
@@ -54,7 +54,7 @@ function conclusion_embed(): EmbedBuilder {
 
 /**
  * A function which awaits for a user to send a message, then returns it once sent.
- * 
+ *
  * @param channel The channel in which the message is being sent
  * @param user_id The user id of the individual sending messages
  * @param timeout The timeout period (default is 600,000 seconds)
@@ -76,7 +76,7 @@ async function await_user_messge(channel: DMChannel, user_id: string, timeout = 
 
 /**
  * Executes a created form
- * 
+ *
  * @param form The form to execute
  * @param member The member who is executing the form
  * @returns A result of the form

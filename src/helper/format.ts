@@ -125,3 +125,24 @@ export function get_case_type_from_case(court_case: Case): string {
 
     throw new Error("Invalid case_code");
 }
+
+/**
+ * Checks if test contains right to left formatting.
+ *
+ * @param text The text to check
+ * @returns A boolean identifying if it contains rtl
+ */
+export function contains_rtl(text: string): boolean {
+    // Covers Hebrew, Arabic, Syriac, Thaana, etc.
+    return /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(text);
+}
+
+/**
+ * Turns text into safe formatting text in LTR systems.
+ *
+ * @param text The text to format
+ * @returns Formatted text
+ */
+export function safe_text(text: string): string {
+    return contains_rtl(text) ? `"${text}"` : text;
+}

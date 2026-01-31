@@ -301,6 +301,33 @@ export async function execute(interaction: CommandInteraction) {
                 },
             ]
 
+            const resolve_users = await Promise.all(
+                court_case.parties!.map(async party => {
+                    const user = await users_repo.get_by_id(party.user_id);
+                    return { party, user };
+                })
+            );
+            const parties = resolve_users.filter(x =>
+                x.user?.discord_id && x.user.discord_id !== "" && x.user.discord_id !== "0"
+            );
+
+            for (const { user } of parties) {
+                try {
+                    await interaction.guild!.members.fetch(user!.discord_id);
+                } catch (error) {
+                    console.error(`Failed to fetch member ${user!.discord_id}:`, error);
+                }
+            }
+
+            for (const { user } of parties) {
+                perm_overwrites.push({
+                    id: user?.discord_id!,
+                    allow: [
+                        PermissionFlagsBits.SendMessages
+                    ]
+                });
+            }
+
             if (case_type == "appeal" || case_type == "admin" || (judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
                 category = interaction.guild!.channels.cache.find(
                     channel => channel.name == `Circuit Court` && channel.type == ChannelType.GuildCategory
@@ -361,7 +388,44 @@ export async function execute(interaction: CommandInteraction) {
             processing_embed.setDescription("Moving the original case channel.")
             await interaction.editReply({ embeds: [processing_embed] });
 
-            let channel = interaction.guild!.channels.cache.find(channel => channel.id == court_case.channel) as GuildChannel;
+            let channel: GuildChannel;
+            try {
+                const fetchedChannel = await interaction.guild!.channels.fetch(court_case.channel);
+                if (!fetchedChannel) {
+                    return await interaction.editReply({
+                        embeds: [create_error_embed("Channel Error", "Case channel not found.")]
+                    });
+                }
+                channel = fetchedChannel as GuildChannel;
+            } catch (error) {
+                return await interaction.editReply({
+                    embeds: [create_error_embed("Channel Error", `Failed to fetch case channel: ${error}`)]
+                });
+            }
+
+            const resolve_users = await Promise.all(
+                court_case.parties!.map(async party => {
+                    const user = await users_repo.get_by_id(party.user_id);
+                    return { party, user };
+                })
+            );
+            const parties = resolve_users.filter(x =>
+                x.user?.discord_id && x.user.discord_id !== "" && x.user.discord_id !== "0"
+            );
+
+            for (const { user } of parties) {
+                try {
+                    await interaction.guild!.members.fetch(user!.discord_id);
+                } catch (error) {
+                    console.error(`Failed to fetch member ${user!.discord_id}:`, error);
+                }
+            }
+
+            for (const { user } of parties) {
+                channel.permissionOverwrites.edit(user?.discord_id!, {
+                    SendMessages: true,
+                });
+            }
 
             // Move the channel to the new category.
             if ((judge_db_user?.permission! & permissions_list.CIRCUIT_JUDGE) !== 0) {
@@ -381,7 +445,6 @@ export async function execute(interaction: CommandInteraction) {
                 ) as CategoryChannel;
                 channel.setParent(category.id, { lockPermissions: false });
             }
-
 
             if (channel.isTextBased()) {
                 channel.send(`<@${judge_user.id}>, you have been reassigned to this case: ${court_case.card_link}`);

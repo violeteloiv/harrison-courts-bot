@@ -20,7 +20,7 @@ const cases_repo = new CasesRepository(db);
 
 export const data = new SlashCommandBuilder()
     .setName("register")
-	.addUserOption(option => 
+	.addUserOption(option =>
 		option
 			.setName("user")
 			.setDescription("User to update [County Judge+]")
@@ -30,21 +30,21 @@ export const data = new SlashCommandBuilder()
 
 type RegisterData = {
 	old_perms?: number,
-	new_perms?: number,
+	new_perms: number,
 	username?: string,
 	discord_id?: string,
 }
 
 export async function register_user_in_db(interaction: ChatInputCommandInteraction, target_user: User | null): Promise<RegisterData> {
 	// TODO: Do a check to make sure this is being done in cop discords as well.
-	
+
 	// Confirm that the individual is in the courts server.
 	if (!interaction.inGuild() || interaction.guild?.id !== COURTS_SERVER_ID) {
 		interaction.editReply({ embeds: [create_error_embed("Registration Error", "You must run this inside the court server.")] });
 		return { new_perms: -1 };
 	}
 
-	// Get the user to register 
+	// Get the user to register
 	let user_to_register: User;
 	if (target_user && target_user.id !== interaction.user.id) {
 		const permission = (await users_repo.get_by_discord_id(interaction.user.id))?.permission;
@@ -144,8 +144,8 @@ export async function execute(interaction: CommandInteraction) {
 
 		const chamber_categories = guild.channels.cache
 			.filter(
-				(c): c is CategoryChannel => 
-					c.type === ChannelType.GuildCategory && 
+				(c): c is CategoryChannel =>
+					c.type === ChannelType.GuildCategory &&
 					c.name.startsWith("Chambers of ") &&
 					c.id !== category.id
 			)
@@ -179,10 +179,12 @@ export async function execute(interaction: CommandInteraction) {
 
 	// If the user is losing their judge permissions, archive and remove the channels and their category. Also create a trello list for their
 	// case load.
-	if (register_data.old_perms! & permissions_list.COUNTY_JUDGE && !(register_data.new_perms! & permissions_list.COUNTY_JUDGE)) {
+	if (register_data.old_perms != null && register_data.old_perms !== -1 &&
+    (register_data.old_perms & permissions_list.COUNTY_JUDGE) !== 0 &&
+    (register_data.new_perms! & permissions_list.COUNTY_JUDGE) === 0) {
 		let list_id = await get_list_by_name(COUNTY_COURT_BOARD_ID, `Docket of ${register_data.username!}`);
 		if (!list_id) throw new Error(`Failed to get List of Name: Docket of ${register_data.username}`);
-		
+
 		let cards = await get_cards_by_list(list_id);
 		for (const card of cards) {
 			await move_card_to_list(card.id, PENDING_CASES_COUNTY_LIST_ID);

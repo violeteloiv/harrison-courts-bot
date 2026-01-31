@@ -15,7 +15,7 @@ import { update_card } from "../../api/trello/card";
 import { copy_case_card, get_trello_due_date } from "../../api/trello/service";
 
 import { Answer, Form } from "../form";
-import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id } from "../../helper/format";
+import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id, safe_text } from "../../helper/format";
 
 import { BOT_SUCCESS_COLOR, COUNTY_CIVIL_CASE_LABEL_ID, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
 import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
@@ -42,6 +42,7 @@ const cases_repo = new CasesRepository(db);
 export function create_civil_filing_form(): Form {
     let form: Form = { questions: [] };
 
+    // TODO: If the language reads from right to left, put in quotes
     form.questions.push({
         prompt: "Please respond with a list of plaintiffs for the action, or, type 'organization:' then the name of the organization(s) in a comma separated list if you are filing on behalf of an organization.",
         handle: async (message: Message, responses: Answer[]) => {
@@ -54,7 +55,7 @@ export function create_civil_filing_form(): Form {
                 // Process Organization
                 let organization_names = organization_split[1].split(",").map(item => item.trim());
                 for (const org_name of organization_names) {
-                    plaintiffs.push({ user_id: null, role: "plaintiff", organization: org_name });
+                    plaintiffs.push({ user_id: null, role: "plaintiff", organization: safe_text(org_name) });
                 }
             } else {
                 // Process Plaintiffs
@@ -83,7 +84,7 @@ export function create_civil_filing_form(): Form {
                 // Process Organization
                 let organization_names = organization_split[1].split(",").map(item => item.trim());
                 for (const org_name of organization_names) {
-                    defendants.push({ user_id: null, role: "defendant", organization: org_name });
+                    defendants.push({ user_id: null, role: "defendant", organization: safe_text(org_name) });
                 }
             } else {
                 // Process Defendants
@@ -105,25 +106,21 @@ export function create_civil_filing_form(): Form {
     doc_types_question += "- Affidavit\n";
     doc_types_question += "- Demand\n";
     doc_types_question += "- Notice\n";
-    doc_types_question += "If you do not wish to file any documents initially, type 'N/A'";
+    doc_types_question += "For example, if you want to submit a Complaint and Affidavit, you would type 'Complaint, Affidavit'.";
 
     form.questions.push({
         prompt: doc_types_question,
         handle: (message: Message, responses: any[]) => {
             let msg = message.content.toLowerCase();
 
-            if (msg == "n/a") {
-                return { type: "skip", skipBy: 2 };
-            } else {
-                let doc_types = msg.split(",").map(item => item.trim());
-                if (!doc_types.includes("complaint"))
-                    return { type: "retry", error_embed: create_error_embed("Form Error", "A Complaint is required to initiate a civil action.") }
-                for (let i = 0; i < doc_types.length; i++)
-                    if (doc_types[i] != "complaint" && doc_types[i] != "affidavit" && doc_types[i] != "demand" && doc_types[i] != "notice")
-                        return { type: "retry", error_embed: create_error_embed("Form Error", "You can only file one of the above documents when initiating a civil action.") };
+            let doc_types = msg.split(",").map(item => item.trim());
+            if (!doc_types.includes("complaint"))
+                return { type: "retry", error_embed: create_error_embed("Form Error", "A Complaint is required to initiate a civil action.") }
+            for (let i = 0; i < doc_types.length; i++)
+                if (doc_types[i] != "complaint" && doc_types[i] != "affidavit" && doc_types[i] != "demand" && doc_types[i] != "notice")
+                    return { type: "retry", error_embed: create_error_embed("Form Error", "You can only file one of the above documents when initiating a civil action.") };
 
-                return { type: "answer", answer: { name: "doc_types", value: doc_types } };
-            }
+            return { type: "answer", answer: { name: "doc_types", value: doc_types } };
         }
     });
 
@@ -153,9 +150,15 @@ export function create_civil_filing_form(): Form {
                 return { type: "answer", answer: { name: "pdf_att", value: pdf_attachments } };
             } else {
                 let docs = message.content.split(",").map(item => item.trim());
-                for (let i = 0; i < docs.length; i++)
-                    if (docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/))
+                for (let i = 0; i < docs.length; i++) {
+                    const is_google_doc = docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/);
+                    const is_drive_file = docs[i].match(/https:\/\/drive\.google\.com\/file\/d\/(.*?)\/.*?\?usp=sharing/);
+
+                    if (!is_google_doc && !is_drive_file)
                         return { type: "retry", error_embed: create_error_embed("Form Error", "If submitting links, you can only submit Google Document Links") };
+                    else if (!docs[i].match(/https?:\/\/\S+/i))
+                        return { type: "retry", error_embed: create_error_embed("Form Error", "Please ensure you have submitted a link to a Google Document.") };
+                }
 
                 return { type: "answer", answer: { name: "gdrive_docs", value: docs } };
             }

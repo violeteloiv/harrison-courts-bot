@@ -38,13 +38,13 @@ export async function execute(interaction: CommandInteraction) {
     let user = await users_repo.get_by_discord_id(interaction.user.id);
     if (!user)
         return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must register with /register before running this command.")] });
-    
+
     // Get the channel the modal was sent in.
-    let channel = interaction.channel;
-    if (channel?.isTextBased())
-        channel = channel as TextChannel;
-    else
-        return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must run this command in a valid discord server.")] });
+    // let channel = interaction.channel;
+    // if (channel?.isTextBased())
+    //     channel = channel as TextChannel;
+    // else
+    //     return await interaction.editReply({ embeds: [create_error_embed("Permission Error", "You must run this command in a valid discord server.")] });
 
     let error_message = "The following must be fixed in your submission:\n";
 
@@ -53,7 +53,7 @@ export async function execute(interaction: CommandInteraction) {
         error_message += "- Only prosecutors can file criminal cases.\n";
     }
 
-    if (error_message != "The following must be fixed in your submission:\n") 
+    if (error_message != "The following must be fixed in your submission:\n")
         return await interaction.editReply({ embeds: [create_error_embed("Case Submission Error", error_message)] });
 
     if (case_type == 'civil') {

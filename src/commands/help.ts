@@ -38,10 +38,10 @@ export async function execute(interaction: CommandInteraction) {
         description += "- `type` is a required parameter for specifying if this is a *civil*, *criminal*, *limited matter*, or *admin* filing.\n";
         description += "- In order to run with type *criminal*, you must be a **Prosecutor**.\n";
         description += "- Running this command will trigger a form in your DMs which you should try to fill out to the best of your ability.\n";
-        // description += "/noa `case_code: string`, `party: string`\n";
-        // description += "- `case_code` is a required parameter for specifying the case you are trying to give notice for.\n";
-        // description += "- `party` is a required parameter for specifying which party you are appearing for.\n";
-        // description += "- This command will give you permission to speak in the case channel. This can only be run by an **Attorney**, and improper usage can result in sanctions.\n";
+        description += "/noa `case_code: string`, `party: string`\n";
+        description += "- `case_code` is a required parameter for specifying the case you are trying to give notice for.\n";
+        description += "- `party` is a required parameter for specifying which party you are appearing for.\n";
+        description += "- This command will give you permission to speak in the case channel. This can only be run by an **Attorney**, and improper usage can result in sanctions.\n";
         // description += "/transferpetition\n";
         // description += "- This command prompts the user with a form in their DMs to fill out with the purpose of playing for transfer of bar certification.\n";
     } else if (choice == "admin") {
@@ -52,10 +52,10 @@ export async function execute(interaction: CommandInteraction) {
         description += "- Registers an oath in the system for a user. This can only be run by **Judges** or **Administrators**.\n"
         description += "/pendingcases\n";
         description += "- Will give the user a list of cases which are currently pending before the court. This can only be run by **Clerks** or above.\n";
-        // description += "/assigncase `case_code: string`, `judge: User`\n";
-        // description += "- `case_code` is a required parameter for specifying the case you wish to assign a judge to.\n";
-        // description += "- `judge` is a required parameter for specifying the judge you wish to assign the case to.\n";
-        // description += "- This command will assign the case to the specified judge. This can only be run by **Clerks** or above.\n";
+        description += "/assigncase `case_code: string`, `judge: User`\n";
+        description += "- `case_code` is a required parameter for specifying the case you wish to assign a judge to.\n";
+        description += "- `judge` is a required parameter for specifying the judge you wish to assign the case to.\n";
+        description += "- This command will assign the case to the specified judge. This can only be run by **Clerks** or above.\n";
     }
 
     embed.setDescription(description);
