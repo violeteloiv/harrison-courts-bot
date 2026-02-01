@@ -1,17 +1,7 @@
-if (process.env.NODE_ENV !== "production") {
-    const env_file =
-        process.env.NODE_ENV === "development"
-            ? ".env.development"
-            : ".env";
-
-    require("dotenv").config({ path: env_file });
-}
-
-// DISCORD TOKEN RELATED SHENANIGANS
 const { DISCORD_TOKEN, DISCORD_CLIENT_ID } = process.env;
 
 if (!DISCORD_TOKEN || !DISCORD_CLIENT_ID) {
-    throw new Error("Missing environment variables");
+    throw new Error("Missing environment variables — are you running in Docker with .env.production?");
 }
 
 export const config = {
