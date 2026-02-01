@@ -1,2 +1,2 @@
-docker compose build
-docker compose up
+docker compose build bot-dev
+docker compose up bot-dev

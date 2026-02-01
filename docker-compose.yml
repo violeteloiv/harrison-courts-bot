@@ -1,29 +1,37 @@
 services:
-  db:
-    image: postgres:16 # Or a newer version
-    restart: always
-    environment:
-      POSTGRES_USER: violeteloiv
-      POSTGRES_PASSWORD: psswrd
-      POSTGRES_DB: courts_data
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-  app:
-    build: .
-    depends_on:
-      - db
-    environment:
-      POSTGRES_USER: violeteloiv
-      POSTGRES_PASSWORD: psswrd
-      POSTGRES_DB: courts_data
-    develop:
-      watch:
-        - action: sync
-          path: ./src
-          target: /usr/src/bot/src
-        - action: rebuild
-          path: package.json
+    bot-prod:
+        build: .
+        container_name: court-bot-prod
+        environment:
+              - NODE_ENV=production
+        depends_on:
+            - db
+        restart: unless-stopped
+        volumes:
+            - ./private:/usr/src/bot/private:ro
+
+    bot-dev:
+        build: .
+        container_name: court-bot-dev
+        environment:
+              - NODE_ENV=development
+        depends_on:
+            - db
+        restart: unless-stopped
+        volumes:
+            - ./private:/usr/src/bot/private:ro
+
+    db:
+        image: postgres:16 # Or a newer version
+        restart: always
+        environment:
+            POSTGRES_USER: violeteloiv
+            POSTGRES_PASSWORD: psswrd
+            POSTGRES_DB: courts_data
+        ports:
+        - "5432:5432"
+        volumes:
+        - db_data:/var/lib/postgresql/data
+
 volumes:
   db_data:

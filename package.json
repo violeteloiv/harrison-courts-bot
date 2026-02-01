@@ -10,7 +10,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "token-build": "tsup src/token.ts --minify",
-    "token": "node dist/token.js"
+    "token": "node dist/token.js",
+    "deploy": "npm run build && pm2 restart court-bot"
   },
   "author": "",
   "license": "ISC",
