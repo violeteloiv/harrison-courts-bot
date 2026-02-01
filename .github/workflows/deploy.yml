@@ -19,5 +19,5 @@ jobs:
             cd /home/bot/harrison-courts-bot
             git fetch origin
             git reset --hard origin/main
-            docker compose build bot-prod
-            docker compose up -d bot-prod
+            docker-compose build bot-prod
+            docker-compose up -d bot-prod
