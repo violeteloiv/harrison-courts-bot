@@ -20,4 +20,3 @@ jobs:
                 npm install
                 npm run build
                 docker compose up -d --build bot-prod --force-recreate
-                pm2 restart court-bot
