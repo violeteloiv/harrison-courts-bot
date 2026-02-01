@@ -1,12 +1,11 @@
-import dotenv from "dotenv";
+if (process.env.NODE_ENV !== "production") {
+    const env_file =
+        process.env.NODE_ENV === "development"
+            ? ".env.development"
+            : ".env";
 
-const env_file = process.env.NODE_ENV === 'production'
-  ? '.env.production'
-  : '.env.development';
-
-dotenv.config({ path: env_file });
-
-const is_prod = process.env.NODE_ENV === "production";
+    require("dotenv").config({ path: env_file });
+}
 
 // DISCORD TOKEN RELATED SHENANIGANS
 const { DISCORD_TOKEN, DISCORD_CLIENT_ID } = process.env;

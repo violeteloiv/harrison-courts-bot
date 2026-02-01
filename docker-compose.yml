@@ -4,6 +4,8 @@ services:
         container_name: court-bot-prod
         environment:
               - NODE_ENV=production
+        env_file:
+            - .env.production
         depends_on:
             - db
         restart: unless-stopped
@@ -15,6 +17,8 @@ services:
         container_name: court-bot-dev
         environment:
               - NODE_ENV=development
+        env_file:
+            - .env.development
         depends_on:
             - db
         restart: unless-stopped
