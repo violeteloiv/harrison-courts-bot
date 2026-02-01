@@ -20,5 +20,6 @@ jobs:
                               cd /home/bot/harrison-courts-bot
                               git pull origin main
                               npm install
+                              npm run build
                               docker-compose up -d --build bot-prod
                               pm2 restart court-bot
