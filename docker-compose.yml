@@ -1,6 +1,9 @@
 services:
     bot-prod:
-        build: .
+        build:
+            context: .
+            args:
+                    NODE_ENV: production
         container_name: court-bot-prod
         environment:
               - NODE_ENV=production
@@ -13,7 +16,10 @@ services:
             - ./private:/usr/src/bot/private:ro
 
     bot-dev:
-        build: .
+        build:
+            context: .
+            args:
+                    NODE_ENV: development
         container_name: court-bot-dev
         environment:
               - NODE_ENV=development

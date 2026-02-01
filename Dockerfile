@@ -1,15 +1,22 @@
-FROM node:latest
+# Base Node image
+FROM node:18-alpine
 
-# Create the directory!
-RUN mkdir -p /usr/src/bot
+# Set working directory
 WORKDIR /usr/src/bot
 
-# Copy and Install our bot
-COPY package.json /usr/src/bot
-RUN npm install
+# Copy package.json first for caching
+COPY package*.json ./
 
-COPY . /usr/src/bot
+# Install dependencies (use production deps if NODE_ENV=production)
+ARG NODE_ENV=development
+ENV NODE_ENV=$NODE_ENV
+RUN if [ "$NODE_ENV" = "production" ]; then npm install --omit=dev; else npm install; fi
 
+# Copy source code
+COPY . .
+
+# Build the bot (TypeScript or similar)
 RUN npm run build
 
-CMD ["npm", "run", "dev"]
+# Default command (can be overridden in docker-compose)
+CMD ["node", "dist/index.js"]
