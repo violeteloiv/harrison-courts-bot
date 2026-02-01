@@ -23,7 +23,7 @@ export const migration: Migration = {
             { name: "update_at", type: "TIMESTAMP DEFAULT now()" },
         ]);
 
-        await db.file_query(path.join(__dirname, "001_init.sql"));
+        await db.file_query(path.join(__dirname, "../migrations/001_init.sql"));
 
         await db_create_table(db, "cases", [
             { name: "case_code", type: "VARCHAR(16) PRIMARY KEY" },

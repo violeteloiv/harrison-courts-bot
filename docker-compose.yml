@@ -14,6 +14,7 @@ services:
         restart: unless-stopped
         volumes:
             - ./private:/usr/src/bot/private:ro
+            - ./migrations:/usr/src/bot/migrations:ro
 
     bot-dev:
         build:
@@ -30,6 +31,7 @@ services:
         restart: unless-stopped
         volumes:
             - ./private:/usr/src/bot/private:ro
+            - ./migrations:/usr/src/bot/migrations:ro
 
     db:
         image: postgres:16 # Or a newer version
