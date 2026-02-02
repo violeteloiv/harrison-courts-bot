@@ -1,5 +1,6 @@
 .env.production
 .env.development
+.env
 /dist
 /node_modules
 /private
