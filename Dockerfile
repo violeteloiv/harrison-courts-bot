@@ -18,5 +18,7 @@ COPY . .
 # Build the bot (TypeScript or similar)
 RUN npm run build
 
+RUN cp -r src/api/db/migrations/*.sql dist/api/db/migrations/ || true
+
 # Default command (can be overridden in docker-compose)
 CMD ["node", "dist/index.js"]
