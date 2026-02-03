@@ -13,10 +13,7 @@ import { move_card_to_list_by_name } from "../api/trello/list";
 import { get_trello_due_date, normalize_card_id } from "../api/trello/service";
 
 import { get_unique_filing_id, long_month_date_format, update_filing_record } from "../helper/format";
-import { BOT_SUCCESS_COLOR, COUNTY_OPEN_CASE_LABEL_ID } from "../config";
-
-const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
-const CIRCUIT_COURT_BOARD_ID = "6892a4c496df6092610ed5db";
+import { BOT_SUCCESS_COLOR, COUNTY_COURT_BOARD_ID, CIRCUIT_COURT_BOARD_ID, COUNTY_OPEN_CASE_LABEL_ID, CIRCUIT_CONSIDERATION_LABEL_ID } from "../config";
 
 let db = new DatabaseClient();
 let cases_repo = new CasesRepository(db);
@@ -146,7 +143,7 @@ export async function execute(interaction: CommandInteraction) {
                 await cases_repo.update(case_id, { status: "open" });
             } else {
                 card.labels.push({
-                    id: "689a6a1749d97535aca1b04e", name: "CONSIDERATION"
+                    id: CIRCUIT_CONSIDERATION_LABEL_ID, name: "CONSIDERATION"
                 });
                 await cases_repo.update(case_id, { status: "open" });
             }

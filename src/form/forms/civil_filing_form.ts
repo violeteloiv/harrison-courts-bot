@@ -17,7 +17,7 @@ import { copy_case_card, get_trello_due_date } from "../../api/trello/service";
 import { Answer, Form } from "../form";
 import { capitalize_each_word, get_code_from_case_type, get_unique_filing_id, safe_text } from "../../helper/format";
 
-import { BOT_SUCCESS_COLOR, COUNTY_CIVIL_CASE_LABEL_ID, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
+import { BOT_SUCCESS_COLOR, CASE_LABELS, COUNTY_PENDING_CASE_LABEL_ID, COURTS_SERVER_ID } from "../../config";
 import { get_destination_folder, get_drive_client, upload_pdf, upload_stream_to_drive } from "../../api/google/drive";
 import { format_error_info } from "../../api/error";
 import { get_bar_data } from "../../api/google/sheets";
@@ -42,7 +42,6 @@ const cases_repo = new CasesRepository(db);
 export function create_civil_filing_form(): Form {
     let form: Form = { questions: [] };
 
-    // TODO: If the language reads from right to left, put in quotes
     form.questions.push({
         prompt: "Please respond with a list of plaintiffs for the action, or, type 'organization:' then the name of the organization(s) in a comma separated list if you are filing on behalf of an organization.",
         handle: async (message: Message, responses: Answer[]) => {
@@ -151,7 +150,7 @@ export function create_civil_filing_form(): Form {
             } else {
                 let docs = message.content.split(",").map(item => item.trim());
                 for (let i = 0; i < docs.length; i++) {
-                    const is_google_doc = docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/(.*?)\/.*?\?usp=sharing/);
+                    const is_google_doc = docs[i].match(/https:\/\/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
                     const is_drive_file = docs[i].match(/https:\/\/drive\.google\.com\/file\/d\/(.*?)\/.*?\?usp=sharing/);
 
                     if (!is_google_doc && !is_drive_file)
@@ -320,7 +319,7 @@ export async function process_civil_filing_form(info: CivilCaseInfo, responses: 
 
         case_card.labels = [
             { id: COUNTY_PENDING_CASE_LABEL_ID, name: "PENDING" },
-            { id: COUNTY_CIVIL_CASE_LABEL_ID, name: "CIVIL" },
+            CASE_LABELS.civil,
         ]
 
         await update_card(case_card);

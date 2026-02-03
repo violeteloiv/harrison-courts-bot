@@ -1,9 +1,9 @@
 import { copy_card, set_card_labels } from "./card";
-import { CASE_LABELS, TEMPLATE_CARDS } from "./constants";
+import { CASE_LABELS, TEMPLATE_CARDS } from "../../config";
 
 /**
  * Builds a case name based on the case type.
- * 
+ *
  * @param type The case type
  * @param plaintiffs The list of plaintiffs
  * @param defendants The list of defendants
@@ -37,7 +37,7 @@ export function build_case_name(
 
 /**
  * Copies a case card and modifies it.
- * 
+ *
  * @param jurisdiction The jurisdiction of the case
  * @param case_type The type of case
  * @param plaintiffs The plaintiffs
@@ -59,7 +59,7 @@ export async function copy_case_card(
 
 /**
  * Applies case labels depending on the case type
- * 
+ *
  * @param card_id The id of the card
  * @param case_type The case type
  */
@@ -72,7 +72,7 @@ export async function apply_case_label(card_id: string, case_type: string) {
 /**
  * Gets a trello due date ISO string based on the time_length one wants to set
  * for the deadline.
- * 
+ *
  * @param time_length The timelength (in days) for the deadline
  * @returns The ISO string
  */
@@ -84,7 +84,7 @@ export function get_trello_due_date(time_length: number): string {
 
 /**
  * Gets the card ID from a url or any identifier of the card
- * 
+ *
  * @param card_id_or_url The card ID or URL to get the ID from
  * @returns The Card ID
  */

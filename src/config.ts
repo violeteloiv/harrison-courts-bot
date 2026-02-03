@@ -32,24 +32,35 @@ export const OATH_FOLDER_ID = "15-YcNJ9ES-FJVOWAFxS8vED7v03qoi7b";
 export const BAR_DATABASE_SPREADSHEET_ID = "1cuZyIb0a7vEbZLfmiXWeBn8s3EbvhXUdX1uby-WqAds";
 export const BAR_DATABASE_RANGE = "'Bar of the 7th Circuit'!B12:E77";
 
-// TRELLO IDS
-export const COUNTY_COURT_BOARD_ID = "68929e8db5fe44776b435721";
-export const PENDING_CASES_COUNTY_LIST_ID = "696ec3bd4493ff7eb2db5d97";
-export const CIRCUIT_DOCKET_LIST_ID = "697407dbc680e4dbeeaec50e";
+// TRELLO — BOARDS
+export const COUNTY_COURT_BOARD_ID   = "68929e8db5fe44776b435721";
+export const CIRCUIT_COURT_BOARD_ID  = "6892a4c496df6092610ed5db";
 
-export const COUNTY_OPEN_CASE_LABEL_ID = "69741af9294d94b3ffa6fb63";
-export const COUNTY_PENDING_CASE_LABEL_ID = "6897f0d8fb4520a9e3064806";
-export const COUNTY_CIVIL_CASE_LABEL_ID = "6897f11ed92e87ddd328ed1b";
+// TRELLO — TEMPLATE CARDS (source card + intake list per jurisdiction)
+export const TEMPLATE_CARDS = {
+    county:  { list_id: "696ec3bd4493ff7eb2db5d97", card_id: "68944e50232e7a5cd1f726e0" },
+    circuit: { list_id: "6892a4c496df6092610ed6dc", card_id: "6896e43ff3c33669b7af985a" },
+} as const;
 
-export const PENDING_CASES_CIRCUIT_LIST_ID = "6892a4c496df6092610ed6dc";
+// TRELLO — CASE TYPE LABELS
+export const CASE_LABELS: Record<string, { id: string; name: string }> = {
+    civil:        { id: "6897f11ed92e87ddd328ed1b", name: "CIVIL" },
+    criminal:     { id: "6897f125e85d8fe0a3529d90", name: "CRIMINAL" },
+    expungement:  { id: "6897f13b58f531982d709450", name: "EXPUNGEMENT" },
+    special:      { id: "6897f141a2b53de765c705e5", name: "SPECIAL" },
+    admin:        { id: "6892a4c496df6092610ed6d5", name: "ADMIN" },
+};
 
-export const B1_COURT_BOARD_ID = "6894fe1a2f9d065ea8300f12";
-export const B1_JUDICIAL_OATH_LIST_ID = "68a530c53b2f7fa524f67390";
-export const B1_LEGISLATIVE_OATH_LIST_ID = "68a530cb54c7206692d67ef4";
-export const B1_EXECUTIVE_OATH_LIST_ID = "68a530c9194557185f458359";
-export const B1_OTHER_OATH_LIST_ID = "68a530cd49da0c08744ef6cf";
-export const B1_SORTING_OATH_LIST_ID = "689c0a26aa917ec222dd4725";
-export const AWAITING_ARCHIVING_COUNTY_LIST_ID = "6892a37a0cf6d3d722bc6bec";
+// TRELLO — STATUS LABELS  (these were scattered as standalone IDs before)
+export const COUNTY_PENDING_CASE_LABEL_ID  = "6897f0d8fb4520a9e3064806";
+export const COUNTY_OPEN_CASE_LABEL_ID     = "69741af9294d94b3ffa6fb63";
+export const CIRCUIT_CONSIDERATION_LABEL_ID = "689a6a1749d97535aca1b04e"; // was hardcoded in assigncase.ts
+
+// TRELLO — LIST IDS
+export const PENDING_CASES_COUNTY_LIST_ID       = "696ec3bd4493ff7eb2db5d97";
+export const PENDING_CASES_CIRCUIT_LIST_ID      = "6892a4c496df6092610ed6dc";
+export const CIRCUIT_DOCKET_LIST_ID             = "697407dbc680e4dbeeaec50e";
+export const AWAITING_ARCHIVING_COUNTY_LIST_ID  = "6892a37a0cf6d3d722bc6bec";
 
 // COLOR CONFIGURATION
 export const BOT_SUCCESS_COLOR = "#9853b5";

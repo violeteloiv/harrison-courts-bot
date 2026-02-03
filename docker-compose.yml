@@ -34,6 +34,8 @@ services:
         volumes:
             - ./private:/usr/src/bot/private:ro
             - ./src/api/db/migrations:/usr/src/bot/migrations:ro
+            - ./src:/usr/src/bot/src:ro
+        command: npx tsx --watch src/index.ts
         networks:
                 - court-bot-network
 
@@ -52,6 +54,11 @@ services:
             - db_data:/var/lib/postgresql/data
         networks:
                 - court-bot-network
+        healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+                interval: 5s
+                timeout: 5s
+                retries: 5
 
 networks:
     court-bot-network:
